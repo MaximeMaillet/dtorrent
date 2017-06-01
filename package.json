@@ -11,10 +11,8 @@
     "listener"
   ],
   "author": "2Max <maxime.maillet93@gmail.com>",
-  "license": "ISC",
+  "license": "GNU General Public License v3.0",
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "q": "^1.5.0",
     "watch-object": "^1.1.2",
     "xmlrpc": "^1.3.2"
   },
