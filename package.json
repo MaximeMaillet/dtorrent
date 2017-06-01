@@ -2,6 +2,10 @@
   "name": "dtorrent",
   "version": "1.0.0",
   "description": "Listener for rTorrent",
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/MaximeMaillet/dTorrent"
+  },
   "main": "listener.js",
   "scripts": {
     "start": "node listener.js"
