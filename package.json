@@ -4,8 +4,7 @@
   "description": "Listener for rTorrent",
   "main": "listener.js",
   "scripts": {
-    "start": "node listener.js",
-    "test": "node test.js"
+    "start": "node listener.js"
   },
   "keywords": [
     "torrent",

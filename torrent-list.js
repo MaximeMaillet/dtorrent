@@ -1,7 +1,6 @@
 'use strict';
 
 var debug = require('debug');
-const lDebug = debug('dTorrent:model:debug');
 const lError = debug('dTorrent:model:error');
 
 var watchObject = require('watch-object');
@@ -10,10 +9,22 @@ var unwatch = watchObject.unwatch;
 
 function torrentList() {
 
+	/**
+	 * Array of torrent
+	 * @type {Array}
+	 */
 	this.list = [];
 
+	/**
+	 * Listener
+	 * @type {null}
+	 */
 	this.listener = null;
 
+	/**
+	 * Method for add listener
+	 * @param listener
+	 */
 	this.addListener = (listener) => {
 		this.listener = listener;
 	};
@@ -87,10 +98,20 @@ function torrentList() {
 		});
 	};
 
+	/**
+	 * Get torrent by index
+	 * @param index
+	 * @returns {*}
+	 */
 	this.getByIndex = (index) => {
 		return this.list[index];
 	};
 
+	/**
+	 * Return true or false if torrent is already binded
+	 * @param torrent
+	 * @returns {boolean}
+	 */
 	this.isBind = (torrent) => {
 		for(var i=0; i<this.list.length; i++) {
 			if(this.list[i].hash == torrent.hash) {
@@ -101,6 +122,10 @@ function torrentList() {
 		return false;
 	};
 
+	/**
+	 * Bind data in torrent
+	 * @param data
+	 */
 	this.bind = (data) => {
 		var self = this;
 
@@ -116,6 +141,11 @@ function torrentList() {
 			});
 	};
 
+	/**
+	 * Update torrent if it has changed
+	 * @param data
+	 * @returns {Promise}
+	 */
 	this.update = (data) => {
 		var self = this;
 		return new Promise((resolve, reject) => {
@@ -141,6 +171,10 @@ function torrentList() {
 		});
 	};
 
+	/**
+	 * Watch torrent properties
+	 * @param torrent
+	 */
 	this.watch = (torrent) => {
 		var self = this;
 		watch(torrent, 'mb_uploaded', function(newState, oldState) {
@@ -157,6 +191,12 @@ function torrentList() {
 		});
 	};
 
+	/**
+	 * Return array of changes between two torrents
+	 * @param original
+	 * @param newValues
+	 * @returns {Promise}
+	 */
 	this.getChanges = (original, newValues) => {
 		return new Promise((resolve, reject) => {
 			var excludeField = ['is_valid'];
@@ -177,28 +217,19 @@ function torrentList() {
 		});
 	};
 
-
-
-
+	/**
+	 * Return size of list
+	 * @returns {Number}
+	 */
 	this.size = function() {
 		return this.list.length;
 	};
 
-	this.getInvalidByIndex = function(index) {
-		return new Promise((resolve, reject) => {
-			var torrent = this.list[index];
-			if(torrent == undefined) {
-				reject({exception: 'FailedData', code: 30, message:'Torrent does not exists'});
-			}
-
-			if(!torrent.is_valid) {
-				resolve(torrent);
-			}
-		});
-	};
-
-
-
+	/**
+	 * Get torrent by her hash
+	 * @param hash
+	 * @returns {Promise}
+	 */
 	this.getByHash = function(hash) {
 		var self = this;
 		return new Promise((resolve, reject) => {
@@ -210,14 +241,6 @@ function torrentList() {
 			reject({exception: 'FailedData', code: 30, message:'Torrent does not exists'});
 		});
 	};
-
-	this.isValid = function(hash) {
-		for(var i=0; i<this.list.length; i++) {
-			if(this.list[i].hash == hash) {
-				return this.list[i].is_valid;
-			}
-		}
-	}
 };
 
 module.exports = new torrentList();
