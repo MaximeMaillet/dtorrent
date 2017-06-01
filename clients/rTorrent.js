@@ -6,13 +6,13 @@
 function rTorrent(config) {
 	var xmlrpc = require('xmlrpc');
 	var client = xmlrpc.createClient({
-		host: config.host || 'localhost',
+		host: config.host || '127.0.0.1',
 		port: config.port || 8080,
 		path: config.path || '/RPC2'
 	});
 
 
-	this.list = function() {
+	this.list = () => {
 		return new Promise((resolve, reject) => {
 			client.methodCall('download_list', [], function (error, value) {
 				if (error) {
@@ -25,7 +25,7 @@ function rTorrent(config) {
 		})
 	};
 
-	this.getTorrent = function(hash) {
+	this.getTorrent = (hash) => {
 		return new Promise((resolve, reject) => {
 			var promises = [];
 

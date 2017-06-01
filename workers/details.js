@@ -19,12 +19,8 @@ module.exports.start = function(client, model) {
 					}
 					else {
 						model.update(result)
-							.then((newTorrent) => {
-								//console.log(newTorrent);
-							})
-							.catch((error) => {
-								console.log(error);
-							})
+							.then((newTorrent) => {})
+							.catch((error) => {})
 					}
 				})
 				.catch((error) => {

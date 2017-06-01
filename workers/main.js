@@ -12,8 +12,7 @@ module.exports = {
 	rootInterval: null,
 	model: null,
 	listener: null,
-
-
+	
 	init: function(config, model, listener) {
 		return new Promise((resolve, reject) => {
 			// TODO check listener

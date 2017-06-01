@@ -221,7 +221,7 @@ function torrentList() {
 	 * Return size of list
 	 * @returns {Number}
 	 */
-	this.size = function() {
+	this.size = () => {
 		return this.list.length;
 	};
 
@@ -230,7 +230,7 @@ function torrentList() {
 	 * @param hash
 	 * @returns {Promise}
 	 */
-	this.getByHash = function(hash) {
+	this.getByHash = (hash) => {
 		var self = this;
 		return new Promise((resolve, reject) => {
 			for(var i=0; i<self.list.length; i++) {
