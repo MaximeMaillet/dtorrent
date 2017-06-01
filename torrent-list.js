@@ -7,11 +7,16 @@ const lError = debug('dTorrent:model:error');
 var watchObject = require('watch-object');
 var watch = watchObject.watch;
 var unwatch = watchObject.unwatch;
-var Torrent = require('../models/torrent');
 
 function torrentList() {
 
 	this.list = [];
+
+	this.listener = null;
+
+	this.addListener = (listener) => {
+		this.listener = listener;
+	};
 
 	/**
 	 * Check data from client and return standard torrent
@@ -72,26 +77,12 @@ function torrentList() {
 		return new Promise((resolve, reject) => {
 			self.isExists({hash: hash})
 				.then((torrent) => {
-					return self.checkTorrent(torrent);
-				})
-				.then((torrent) => {
-					Object.assign(torrent, {is_valid:true});
+					Object.assign(torrent, {is_valid:false});
 					self.list.push(torrent);
 					resolve(torrent);
 				})
 				.catch((error) => {
-					if(error.exception == 'FailedCheckData') {
-						var torrent = {
-							hash: hash,
-							is_valid: false
-						};
-						self.list.push(torrent);
-						self.watch(torrent);
-						resolve(torrent);
-					}
-					else {
-						reject(error);
-					}
+					reject(error);
 				});
 		});
 	};
@@ -100,6 +91,15 @@ function torrentList() {
 		return this.list[index];
 	};
 
+	this.isBind = (torrent) => {
+		for(var i=0; i<this.list.length; i++) {
+			if(this.list[i].hash == torrent.hash) {
+				return this.list[i].is_valid;
+				break;
+			}
+		}
+		return false;
+	};
 
 	this.bind = (data) => {
 		var self = this;
@@ -109,67 +109,76 @@ function torrentList() {
 				Object.assign(result, data);
 				result.is_valid = true;
 				self.watch(result);
+				self.listener.onInsert(result);
 			})
 			.catch((error) => {
 				lError(error);
 			});
 	};
 
+	this.update = (data) => {
+		var self = this;
+		return new Promise((resolve, reject) => {
+			this.getByHash(data.hash)
+				.then((torrent) => {
+
+					self.getChanges(torrent, data)
+						.then((changes) => {
+							if(changes.length > 0) {
+								changes.forEach(function(field) {
+									torrent[field] = data[field];
+								});
+							}
+							resolve(torrent);
+						})
+						.catch((error) => {
+							console.log(error);
+						});
+				})
+				.catch((error) => {
+					reject(error);
+				});
+		});
+	};
+
 	this.watch = (torrent) => {
-		watch(torrent, 'state', function (newState, oldState) {
-			lDebug("Change state %s > %s", newState, oldState);
-			var clientEvent = null;
-			var playing = false;
-			var key = global.QUEUE_KEY.SPECIFIC_TORRENT+torrent.hash;
+		var self = this;
+		watch(torrent, 'mb_uploaded', function(newState, oldState) {
+			self.listener.onUploaded(torrent);
+		});
 
-			if(newState == TORRENT_STATE.START) {
-				playing = true;
-				if(oldState == TORRENT_STATE.PAUSE) {
-					clientEvent = 'restart';
-				}
-				else {
-					clientEvent = 'new';
-				}
-			}
-			else if(newState == TORRENT_STATE.PAUSE) {
-				playing = false;
-				clientEvent = 'paused';
-			}
-			else if(newState == TORRENT_STATE.FINISHED) {
-				playing = false;
-				torrent.isDone = true;
-				torrent.mb_downloaded = torrent.mb_total;
-				torrent.progress = 100;
-				clientEvent = 'finished';
-			}
-			else if(newState == TORRENT_STATE.ERASED) {
-				clientEvent = 'erased';
-			}
+		watch(torrent, 'mb_downloaded', function(newState, oldState) {
+			self.listener.onDownloaded(torrent);
 
-			lDebug("Change state : %s with event : %s", newState, clientEvent);
-
-			if(clientEvent != null) {
-				queue.send(key, JSON.stringify({
-					'event': clientEvent,
-					'torrent': {
-						hash: torrent.hash,
-						name: torrent.name,
-						ratio: torrent.ratio,
-						mb_downloaded: torrent.mb_downloaded,
-						mb_total: torrent.mb_total,
-						mb_uploaded: torrent.mb_uploaded,
-						isDone: torrent.isDone,
-						progress: torrent.progress,
-						playing: torrent.isDone ? false : playing
-					}
-				}));
-
-				if(newState == TORRENT_STATE.FINISHED || newState == TORRENT_STATE.ERASED) {
-					return unwatch(torrent);
-				}
+			if(torrent.progress == 100) {
+				self.listener.onFinished(torrent);
+				unwatch(torrent);
 			}
 		});
 	};
+
+	this.getChanges = (original, newValues) => {
+		return new Promise((resolve, reject) => {
+			var excludeField = ['is_valid'];
+			var arrayReturn = [];
+			var sizeTotal = Object.keys(original).length;
+			var i=0;
+
+			Object.keys(original).map(function(objectKey, index) {
+				i++;
+				if(excludeField.indexOf(objectKey) == -1 && original[objectKey] != newValues[objectKey]) {
+					arrayReturn.push(objectKey);
+				}
+
+				if(i == sizeTotal-1) {
+					resolve(arrayReturn);
+				}
+			});
+		});
+	};
+
+
+
 
 	this.size = function() {
 		return this.list.length;
@@ -192,7 +201,6 @@ function torrentList() {
 
 	this.getByHash = function(hash) {
 		var self = this;
-
 		return new Promise((resolve, reject) => {
 			for(var i=0; i<self.list.length; i++) {
 				if(self.list[i].hash == hash) {

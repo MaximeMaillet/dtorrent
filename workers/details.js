@@ -13,7 +13,19 @@ module.exports.start = function(client, model) {
 		var torrent = model.getByIndex(i);
 			client.getTorrent(torrent.hash)
 				.then((result) => {
-					model.bind(result);
+
+					if(!model.isBind(result)) {
+						model.bind(result);
+					}
+					else {
+						model.update(result)
+							.then((newTorrent) => {
+								//console.log(newTorrent);
+							})
+							.catch((error) => {
+								console.log(error);
+							})
+					}
 				})
 				.catch((error) => {
 					lError("Exception %s : %s", error.exception, error.message);
