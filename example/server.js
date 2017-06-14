@@ -2,7 +2,7 @@
  * Created by MaximeMaillet on 01/06/2017.
  */
 
-var dtorrent = require('dTorrent');
+var dtorrent = require('dtorrent');
 
 var dConfig = {
 	torrent: {

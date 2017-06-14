@@ -88,7 +88,7 @@ function torrentList() {
 		return new Promise((resolve, reject) => {
 			self.isExists({hash: hash})
 				.then((torrent) => {
-					Object.assign(torrent, {is_valid:false});
+					Object.assign(torrent, {is_valid:false, isFinished:false, isChecked:false});
 					self.list.push(torrent);
 					resolve(torrent);
 				})

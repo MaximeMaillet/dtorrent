@@ -3,7 +3,7 @@ Listen your torrent client with dTorrent. You will can know when your torrent is
 ## Installation
 
 ```bash
-$ npm install dTorrent --save
+npm install dtorrent --save
 ```
 
 ## Features
