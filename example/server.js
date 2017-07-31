@@ -2,12 +2,12 @@
  * Created by MaximeMaillet on 01/06/2017.
  */
 
-var dtorrent = require('dtorrent');
+var dtorrent = require('../listener');
 
 var dConfig = {
 	torrent: {
 		client: 'rTorrent', // Client for download torrent
-		host: '127.0.0.1', // IP of client torrent
+		host: '192.168.1.101', // IP of client torrent
 		port: 8080, // Port of client torrent
 		path: '/RPC2' // Path to join client torrent via XML RPC
 	}

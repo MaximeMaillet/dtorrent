@@ -36,7 +36,6 @@ module.exports = {
 	},
 
 	root: function() {
-
 		var root = this;
 		var workers = require('./worker');
 
@@ -45,7 +44,6 @@ module.exports = {
 
 		lDebug('Launch list worker :');
 		this.rootInterval = setInterval(function() {
-			
 			workers.list.start(root.client, root.model);
 			workers.details.start(root.client, root.model);
 
