@@ -23,6 +23,7 @@ module.exports.start = function(client, model) {
 						lDebug("Torrent add : %s", torrent.hash);
 					})
 					.catch((error) => {
+					console.log(error);
 						if(error.exception != 'FailedData') {
 							lError("Exception %s : %s", error.exception, error.message);
 						}
@@ -30,6 +31,7 @@ module.exports.start = function(client, model) {
 			}
 		})
 		.catch((error) => {
+		console.log(error);
 			lError("Exception %s : %s", error.exception, error.message);
 		});
 };

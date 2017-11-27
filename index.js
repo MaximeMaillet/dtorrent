@@ -2,12 +2,12 @@
  * Created by MaximeMaillet on 01/06/2017.
  */
 
-var dtorrent = require('../listener');
+var dtorrent = require('./listener');
 
 var dConfig = {
 	torrent: {
 		client: 'rTorrent', // Client for download torrent
-		host: '192.168.1.101', // IP of client torrent
+		host: '0.0.0.0', // IP of client torrent
 		port: 8089, // Port of client torrent
 		path: '/RPC2' // Path to join client torrent via XML RPC
 	}
@@ -27,8 +27,8 @@ var dListener = {
 	 * @param torrent
 	 */
 	onUploaded: function(torrent) {
-		/*console.log("event uploaded %s", torrent.hash);
-		console.log(torrent);*/
+		console.log("event uploaded %s", torrent.hash);
+		console.log(torrent);
 	},
 	/**
 	 * Function called when torrent is downloading

@@ -2,9 +2,9 @@
   "name": "dtorrent",
   "version": "1.0.1",
   "description": "Listener for rTorrent",
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/MaximeMaillet/dTorrent"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaximeMaillet/dTorrent"
   },
   "main": "listener.js",
   "scripts": {
@@ -17,8 +17,9 @@
   "author": "2Max <maxime.maillet93@gmail.com>",
   "license": "GNU General Public License v3.0",
   "dependencies": {
+    "bluebird": "^3.5.0",
+    "debug": "^2.6.8",
     "watch-object": "^1.1.2",
-    "xmlrpc": "^1.3.2",
-    "debug": "^2.6.8"
+    "xmlrpc": "^1.3.2"
   }
 }

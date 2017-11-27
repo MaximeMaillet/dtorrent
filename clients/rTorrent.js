@@ -3,19 +3,22 @@
  */
 "use strict";
 
+var Promise = require("bluebird");
+
 function rTorrent(config) {
 	var xmlrpc = require('xmlrpc');
 	var client = xmlrpc.createClient({
 		host: config.host || '127.0.0.1',
 		port: config.port || 8080,
-		path: config.path || '/RPC2'
+		path: config.path || '/RPC2',
+		encoding: 'UTF-8'
 	});
-
 
 	this.list = () => {
 		return new Promise((resolve, reject) => {
 			client.methodCall('download_list', [], function (error, value) {
 				if (error) {
+					console.log(error.req);
 					reject(error);
 				}
 				else {
