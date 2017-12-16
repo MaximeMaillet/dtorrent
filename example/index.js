@@ -37,7 +37,7 @@ const dListener = {
 	}
 };
 
-// Optional
+// Optional, you cas use environment variable
 dtorrent.addConfig(dConfig);
 
 /**
