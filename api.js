@@ -10,7 +10,7 @@ const lDebug = debug('dTorrent:api:debug');
 /**
  * Initialize API
  */
-module.exports = async() => {
+module.exports = async(listener) => {
 	lDebug('Launch API');
 	const app = express();
 	app.use(bodyParser.urlencoded({ extended: false }));
@@ -25,6 +25,7 @@ module.exports = async() => {
 	]);
 
 	const controller = require('./src/api/controllers/torrent');
+	controller.init(listener);
 
 	app.put('/api/torrents', (req, res) => {
 		controller.put(req, res, completeUpload);

@@ -41,16 +41,16 @@ module.exports.addConfig = (config) => {
  */
 module.exports.start = async(listener) => {
 	try {
-		api();
+		api(listener);
 
 		lDebug('Launch listener');
 
 		await initializeMongodb();
 
 		// TODO check all method for listener
-		// staticTorrentList.addListener(listener);
-		//
-		// launchListWorker();
+		staticTorrentList.addListener(listener);
+
+		launchListWorker();
 	} catch(error) {
 		lError(`Exception : ${error}`);
 	}

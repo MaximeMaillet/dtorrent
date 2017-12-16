@@ -8,6 +8,10 @@ const fs = require('fs');
 const staticTorrentList = new TorrentList();
 const lDebug = debug('dTorrent:api:controller:torrent:debug');
 
+module.exports.init = (listener) => {
+	staticTorrentList.addListener(listener);
+};
+
 module.exports.put = async(req, res, cpUpload) => {
 	cpUpload(req, res, (err) => {
 		if (err) {
@@ -15,12 +19,20 @@ module.exports.put = async(req, res, cpUpload) => {
 		}
 
 		checkTorrent(req.files.torrent[0], req.files.file[0])
-			.then((isChecked) => {
-				if(isChecked) {
+			.then(({success, hash}) => {
+				if(success) {
 					moveFile(req.files.file[0])
 						.then(() => {
 							return moveTorrent(req.files.torrent[0]);
-						});
+						})
+						.then(() => {
+							staticTorrentList.onEvent('torrent_added', {
+								'hash': hash,
+								'is_filled': false,
+								'is_finished': true
+							});
+						})
+					;
 					res.send('Torrent is uploaded');
 				} else {
 					res.status(422).send('Hash check is not ok');
@@ -73,7 +85,10 @@ function checkTorrent(torrentFile, file) {
 				});
 
 				hasher.on('end', () => {
-					resolve(percentMatch === 100);
+					resolve({
+						'success': percentMatch === 100,
+						'hash': torrent.infoHash()
+					});
 				});
 			});
 		});
