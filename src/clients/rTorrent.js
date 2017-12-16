@@ -20,7 +20,7 @@ module.exports.getTorrent = async(hash) => {
 	const upTotal = await methodCall('d.get_up_total', [hash]);
 
 	/** Check if torrent is playing or not */
-	const isActive = await methodCall('d.is_active', [hash])
+	const isActive = await methodCall('d.is_active', [hash]);
 
 	/** Get name */
 	const name = await methodCall('d.get_name', [hash]);
@@ -28,17 +28,21 @@ module.exports.getTorrent = async(hash) => {
 	/** Get ration up/down */
 	const ratio = await methodCall('d.get_ratio', [hash]);
 
+	const nbSeeders = await methodCall('d.get_peers_complete', [hash]);
+	const nbLeechers = await methodCall('d.get_peers_accounted', [hash]);
+
 	return {
 		hash: hash,
 		name: name,
 		progress: Math.round((completedByte*100) / sizeBytes),
-		down_rate: downRate,
-		mb_downloaded: Math.round(completedByte/(1024*1024)*100)/100,
-		mb_uploaded: Math.round(upTotal/(1024*1024)*100)/100,
-		mb_total: Math.round(sizeBytes/(1024*1024)*100)/100,
+		down_rate: Number(downRate),
+		mb_downloaded: Number(completedByte),
+		mb_uploaded: Number(upTotal),
+		mb_total: Number(sizeBytes),
 		playing: isActive === '1',
-		isDone: completedByte === sizeBytes,
-		ratio: ratio/100
+		ratio: ratio/100,
+		nb_seeders: Number(nbSeeders),
+		nb_leechers: Number(nbLeechers)
 	};
 };
 
