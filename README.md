@@ -1,15 +1,22 @@
 # dTorrent
 
-Listen your `rtorrent` client with dTorrent.
+Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorrent.
 
-## Arrival
+##### Arrival
 
 * Docker for rtorrent deamon (with nginx & xml-rpc)
 * Api for send action to rtorrent (add, pause, resume, erase, info)
 
-## Features
+##### Features
 
 * Receive event when torrent added, finished, in progress (downloading & uploading)
+
+## Requirements
+
+* [nginx](#nginx)
+* [rtorrent](#rtorrent)
+* [mongodb](#mongodb)
+
 
 ## Install
 
@@ -25,9 +32,11 @@ Create index.js and write this :
 var dtorrent = require('dtorrent');
 
 var dConfig = {
-    host: '127.0.0.1', // IP of client torrent
-    port: 8080, // Port of client torrent
-    path: '/RPC2' // Path to join client torrent via XML RPC
+  rtorrent_host: '127.0.0.1', // IP of client torrent
+  rtorrent_port: 8092, // Port of client torrent
+  rtorrent_path: '/RPC2', // Path to join client torrent via XML RPC
+  mongo_host: '127.0.0.1', // host for mongodb
+  mongo_port: 27017 // port for mongodb
 };
 
 var dListener = {
@@ -51,10 +60,15 @@ dtorrent.addConfig(dConfig);
 dtorrent.start(dConfig, dListener);
 ```
 
+Or, for config :
 
-# Torrent server
-
-Debian jessie 8.9
+```.env
+RTORRENT_HOST=127.0.0.1
+RTORRENT_PORT=8092
+RTORRENT_PATH=/RPC2
+MONGO_HOST=127.0.0.1
+MONGO_PORT=27017
+```
 
 ## Nginx
 
@@ -145,6 +159,13 @@ rTorrent
 ```
 
 dtach for launch as deamon : https://doc.ubuntu-fr.org/rtorrent#rtorrent_en_daemon
+
+
+## Mongodb
+
+#### Install
+
+[Documentation](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-debian/)
 
 
 ## License

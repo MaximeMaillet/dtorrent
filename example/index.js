@@ -3,7 +3,9 @@ const dtorrent = require('dtorrent');
 const dConfig = {
 	rtorrent_host: '127.0.0.1', // IP of client torrent
 	rtorrent_port: 8092, // Port of client torrent
-	rtorrent_path: '/RPC2' // Path to join client torrent via XML RPC
+	rtorrent_path: '/RPC2', // Path to join client torrent via XML RPC
+	mongo_host: '127.0.0.1', // host for mongodb
+	mongo_port: 27017 // port for mongodb
 };
 
 const dListener = {
