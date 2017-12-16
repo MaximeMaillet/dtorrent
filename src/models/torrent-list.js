@@ -78,6 +78,10 @@ function TorrentList() {
 		return clientTorrent.getTorrent(hash);
 	};
 
+	this.getList = () => {
+		return clientTorrent.list();
+	};
+
 	/**
 	 * @param hash
 	 * @return {Promise.<*>}

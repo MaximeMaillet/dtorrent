@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "/torrents": {
+      "put": "torrent#put"
+    }
+  }
+}

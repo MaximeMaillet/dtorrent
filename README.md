@@ -2,14 +2,22 @@
 
 Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorrent.
 
-##### Arrival
+##### Todo
 
-* Docker for rtorrent deamon (with nginx & xml-rpc)
-* Api for send action to rtorrent (add, pause, resume, erase, info)
+* Api for send action to rtorrent (pause, resume, erase)
+* Independant worker (garbage collector) for clean mongodb when files are manually erased. Optionally
+* Web socket on events
+* Web hook on events
+
 
 ##### Features
 
 * Receive event when torrent added, finished, in progress (downloading & uploading)
+* Docker for rtorrent deamon (with nginx & xml-rpc) https://gitlab.deuxmax.fr/torrent/rtorrent-deamon
+* Api
+    * For add torrent + file
+    * For get details about one torrent
+    * For get list of all torrents registered
 
 ## Requirements
 

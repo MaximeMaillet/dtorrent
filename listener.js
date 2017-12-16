@@ -4,6 +4,7 @@ const debug = require('debug');
 const TorrentList = require('./src/models/torrent-list');
 const workerList = require('./src/workers/list');
 const mongoose = require('mongoose');
+const api = require('./api');
 
 const lDebug = debug('dTorrent:listener:debug');
 const lError = debug('dTorrent:listener:error');
@@ -40,15 +41,16 @@ module.exports.addConfig = (config) => {
  */
 module.exports.start = async(listener) => {
 	try {
+		api();
+
 		lDebug('Launch listener');
 
 		await initializeMongodb();
-		mongoose.Promise = require('bluebird');
 
 		// TODO check all method for listener
-		staticTorrentList.addListener(listener);
-
-		launchListWorker();
+		// staticTorrentList.addListener(listener);
+		//
+		// launchListWorker();
 	} catch(error) {
 		lError(`Exception : ${error}`);
 	}
@@ -64,11 +66,26 @@ async function launchListWorker() {
 	}, 1500);
 }
 
+/**
+ * Init mongo connection
+ * @return {Promise}
+ */
 async function initializeMongodb() {
-	return mongoose.connect(`mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/torrent`, {
-		useMongoClient: true
-	})
-	.then(() => {
-		return true;
+	return new Promise((resolve, reject) => {
+		mongoose.connect(
+			`mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/torrent`,
+			{
+				useMongoClient: true
+			},
+			(err) => {
+				if(err) {
+					reject(err);
+				} else {
+					mongoose.Promise = require('bluebird');
+					resolve(true);
+				}
+			}
+		);
 	});
+
 }
