@@ -18,7 +18,7 @@ module.exports.addConfig = (config) => {
 	}
 
 	if(config.rtorrent_port) {
-		process.env.RTORRENT_PORT = config.rtorrent_host;
+		process.env.RTORRENT_PORT = config.rtorrent_port;
 	}
 
 	if(config.rtorrent_path) {
