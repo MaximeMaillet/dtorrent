@@ -4,15 +4,124 @@ const debug = require('debug');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
+const queue = require('../../lib/queue');
 
 const staticTorrentList = new TorrentList();
-const lDebug = debug('dTorrent:api:controller:torrent:debug');
+const lDebug = debug('dTorrent:api:controller:debug');
 
+/**
+ * Initialize api
+ * @param listener
+ */
 module.exports.init = (listener) => {
+	lDebug('Initialize API controller');
 	staticTorrentList.addListener(listener);
 };
 
+/**
+ * Web socket
+ * @param req
+ * @param res
+ */
+module.exports.listener = (req, res) => {
+
+	lDebug('Open connection');
+
+	req.socket.setTimeout(120000);
+	res.writeHead(200, {
+		'Content-Type': 'text/event-stream',
+		'Cache-Control': 'no-cache',
+		'Connection': 'keep-alive'
+	});
+	res.write('\n');
+
+	const refreshIntervalId = setInterval(() => {
+		lDebug('Send ping to client');
+		res.write(`data: ${JSON.stringify({'event': 'ping'})} \n\n`);
+	}, 90000);
+
+	/**
+	 * @TODO
+	 * Check de connexion
+	 */
+
+	/**
+	 * Listener rabbitMQ
+	 */
+	queue.openQueue(global.QUEUE_KEY.TORRENTS, {
+		onError: function(error) {
+			lDebug(error);
+			res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
+			res.end();
+		},
+		onEmit: function(jsonMsg) {
+			res.write(`data: ${ JSON.stringify(jsonMsg) } \n\n`);
+		}
+	});
+
+	req.on('close', () => {
+		lDebug('Connection close');
+
+		queue.close();
+
+		clearInterval(refreshIntervalId);
+		res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
+		res.end();
+	});
+
+};
+
+
+/**
+ * @TODO
+ * @param req
+ * @param res
+ * @param cpUpload
+ * @return {Promise.<void>}
+ */
 module.exports.put = async(req, res, cpUpload) => {
+
+};
+
+/**
+ * Get One
+ * @param req
+ * @param res
+ * @return {Promise.<void>}
+ */
+module.exports.getOne = async(req, res) => {
+	if(!req.params.hash) {
+		return res.status(422).status('Hash is missing');
+	}
+
+	try {
+		return res.send((await staticTorrentList.getTorrent(req.params.hash)));
+	} catch(e) {
+		res.status(500).send(e);
+	}
+};
+
+/**
+ * Get all
+ * @param req
+ * @param res
+ * @return {Promise.<void>}
+ */
+module.exports.getAll = async(req, res) => {
+	try {
+		return res.send((await staticTorrentList.getList()));
+	} catch(e) {
+		res.status(500).send(e);
+	}
+};
+
+/**
+ * Post torrent
+ * @param req
+ * @param res
+ * @param cpUpload
+ */
+module.exports.post = (req, res, cpUpload) => {
 	cpUpload(req, res, (err) => {
 		if (err) {
 			return res.status(500).send(err);
@@ -41,27 +150,7 @@ module.exports.put = async(req, res, cpUpload) => {
 	});
 };
 
-module.exports.getOne = async(req, res) => {
-	if(!req.params.hash) {
-		return res.status(422).status('Hash is missing');
-	}
 
-	try {
-		return res.send((await staticTorrentList.getTorrent(req.params.hash)));
-	} catch(e) {
-		res.status(500).send(e);
-	}
-};
-
-module.exports.getAll = async(req, res) => {
-	try {
-		return res.send((await staticTorrentList.getList()));
-	} catch(e) {
-		res.status(500).send(e);
-	}
-};
-
-module.exports.post = (req, res, upload) => {};
 module.exports.delete = (req, res) => {};
 
 

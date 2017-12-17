@@ -6,16 +6,30 @@ const debug = require('debug');
 const multer  = require('multer');
 
 const lDebug = debug('dTorrent:api:debug');
+const app = express();
+
+/**
+ * Allow Cros origin
+ */
+app.use((req, res, next) => {
+	const allowedOrigins = ['http://localhost:3000'];
+	const {origin} = req.headers;
+	if(allowedOrigins.indexOf(origin) > -1){
+		res.setHeader('Access-Control-Allow-Origin', origin);
+	}
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+	res.setHeader('Access-Control-Allow-Credentials', true);
+
+	next();
+});
 
 /**
  * Initialize API
  */
 module.exports = async(listener) => {
-	lDebug('Launch API');
-	const app = express();
 	app.use(bodyParser.urlencoded({ extended: false }));
 	app.use(bodyParser.json());
-	const upload = multer({dest: `${__dirname}/src/api/uploads/`});
+	const upload = multer({dest: `${__dirname}/api/uploads/`});
 	const completeUpload = upload.fields([
 		{ name: 'torrent', maxCount: 1 },
 		{ name: 'file', maxCount: 1 }
@@ -24,7 +38,7 @@ module.exports = async(listener) => {
 		{ name: 'file', maxCount: 1 }
 	]);
 
-	const controller = require('./src/api/controllers/torrent');
+	const controller = require('./api/controllers/torrent');
 	controller.init(listener);
 
 	app.put('/api/torrents', (req, res) => {
@@ -38,6 +52,7 @@ module.exports = async(listener) => {
 	app.delete('/api/torrents/:hash', controller.delete);
 	app.get('/api/torrents/:hash', controller.getOne);
 	app.get('/api/torrents', controller.getAll);
+	app.get('/listener', controller.listener);
 
 
 	lDebug(`API started on ${process.env.API_PORT}`);
