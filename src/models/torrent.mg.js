@@ -11,6 +11,7 @@ module.exports = new Schema({
 	playing: Boolean,
 	isDone: Boolean,
 	ratio: Number,
+	is_active: Boolean,
 	is_filled: Boolean,
 	is_finished: Boolean
 });

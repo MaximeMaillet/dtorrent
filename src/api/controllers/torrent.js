@@ -92,6 +92,7 @@ module.exports.listener = (req, res) => {
 
 	req.on('close', () => {
 		lDebug('Connection close');
+		staticList.removeListener(dListener);
 		clearInterval(refreshIntervalId);
 		res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
 		res.end();
@@ -123,7 +124,7 @@ module.exports.getOne = async(req, res) => {
 	}
 
 	try {
-		return res.send((await staticTorrentList.getTorrent(req.params.hash)));
+		return res.send((await staticList.getTorrent(req.params.hash)));
 	} catch(e) {
 		res.status(500).send(e);
 	}
@@ -137,7 +138,7 @@ module.exports.getOne = async(req, res) => {
  */
 module.exports.getAll = async(req, res) => {
 	try {
-		return res.send((await staticTorrentList.getList()));
+		return res.send((await staticList.getList(true, req.query.details)));
 	} catch(e) {
 		res.status(500).send(e);
 	}
@@ -163,7 +164,7 @@ module.exports.post = (req, res, cpUpload) => {
 							return moveTorrent(req.files.torrent[0]);
 						})
 						.then(() => {
-							staticTorrentList.onEvent('torrent_added', {
+							staticList.onEvent('torrent_added', {
 								'hash': hash,
 								'is_filled': false,
 								'is_finished': true

@@ -2,8 +2,17 @@ require('dotenv').config();
 
 const xmlrpc = require('xmlrpc');
 
-module.exports.list = async() => {
-	return methodCall('download_list', []);
+module.exports.list = async(details) => {
+	if(!details) {
+		return methodCall('download_list', []);
+	}
+
+	const hashList = await methodCall('download_list', []);
+	const arrayReturn = [];
+	for(let i=0; i<hashList.length; i++) {
+		arrayReturn.push(await this.getTorrent(hashList[i]));
+	}
+	return arrayReturn;
 };
 
 module.exports.getTorrent = async(hash) => {
@@ -39,7 +48,7 @@ module.exports.getTorrent = async(hash) => {
 		mb_downloaded: Number(completedByte),
 		mb_uploaded: Number(upTotal),
 		mb_total: Number(sizeBytes),
-		playing: isActive === '1',
+		is_active: isActive === '1',
 		ratio: ratio/100,
 		nb_seeders: Number(nbSeeders),
 		nb_leechers: Number(nbLeechers)

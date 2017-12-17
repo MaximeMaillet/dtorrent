@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const lError = debug('dTorrent:model:error');
 const lDebug = debug('dTorrent:model:debug');
 
-const watchTorrentChanges = ['mb_downloaded', 'mb_uploaded'];
+const watchTorrentChangesForEvent = ['mb_downloaded', 'mb_uploaded'];
 const EVENT_TORRENT_ADDED = 'torrent_added';
 const EVENT_TORRENT_FINISHED = 'torrent_finished';
 const EVENT_TORRENT_SETTED = 'torrent_setted';
@@ -40,6 +40,17 @@ function TorrentList() {
 	 */
 	this.addListener = (listener) => {
 		this.listeners.push(listener);
+	};
+
+	/**
+	 * Remove listener
+	 * @param listener
+	 */
+	this.removeListener = (listener) => {
+		const index = this.listeners.indexOf(listener);
+		if (index > -1) {
+			this.listeners.splice(index, 1);
+		}
 	};
 
 	/**
@@ -99,8 +110,21 @@ function TorrentList() {
 		return clientTorrent.getTorrent(hash);
 	};
 
-	this.getList = () => {
-		return clientTorrent.list();
+	/**
+	 * Get torrent list
+	 * @param fromDb
+	 * @param details
+	 * @return {Promise}
+	 */
+	this.getList = (fromDb, details) => {
+		if(fromDb) {
+			return this.getListFromDb();
+		} else {
+			if(details) {
+				return clientTorrent.list(true);
+			}
+			return clientTorrent.list();
+		}
 	};
 
 	/**
@@ -117,6 +141,18 @@ function TorrentList() {
 	};
 
 	/**
+	 * @return {Promise.<*>}
+	 */
+	this.getListFromDb = async() => {
+		const res = await Torrent.find();
+		if(res) {
+			return res;
+		}
+
+		return null;
+	};
+
+	/**
 	 * @return {Promise.<void>}
 	 * @param _torrent
 	 */
@@ -124,6 +160,7 @@ function TorrentList() {
 		try {
 			const torrent = await this.getTorrent(_torrent.hash);
 			torrent.is_filled = true;
+			torrent.playing = true;
 			return torrent;
 		} catch(e) {
 			throw e;
@@ -146,6 +183,12 @@ function TorrentList() {
 					self.onEvent(EVENT_TORRENT_SETTED, newTorrent, field);
 				});
 			}
+
+			await Torrent.findOneAndUpdate({'hash': oldTorrent.hash}, {$set:{
+				'playing': false,
+				'progress': newTorrent.progress,
+				'is_finished': newTorrent.progress === 100
+			}});
 		} catch(e) {
 			lError(`[update] ${e}`);
 		}
@@ -161,9 +204,9 @@ function TorrentList() {
 		return new Promise((resolve, reject) => {
 			const arrayReturn = [];
 
-			for(let i=0; i<watchTorrentChanges.length; i++) {
-				if(original[watchTorrentChanges[i]] !== newValues[watchTorrentChanges[i]]) {
-					arrayReturn.push(watchTorrentChanges[i]);
+			for(let i=0; i<watchTorrentChangesForEvent.length; i++) {
+				if(original[watchTorrentChangesForEvent[i]] !== newValues[watchTorrentChangesForEvent[i]]) {
+					arrayReturn.push(watchTorrentChangesForEvent[i]);
 				}
 			}
 
@@ -193,30 +236,42 @@ function TorrentList() {
 	this.onEvent = async(event, torrent, changes) => {
 		switch(event) {
 			case EVENT_TORRENT_ADDED:
+				lDebug(`Torrent added : ${torrent.hash}`);
+
+				torrent.playing = true;
 				const t = new Torrent(torrent);
 				t.save();
-				lDebug(`Torrent added : ${torrent.hash}`);
 				this.eventToListeners(EVENT_TORRENT_ADDED, torrent);
 				break;
 			case EVENT_TORRENT_SETTED:
 				if(changes === 'mb_uploaded') {
-					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
-						'mb_uploaded': torrent.mb_uploaded
-					}});
 					lDebug(`Torrent uploaded ${torrent.hash}`);
+
+					torrent.playing = true;
+					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
+						'mb_uploaded': torrent.mb_uploaded,
+						'playing': torrent.playing
+					}});
 					this.eventToListeners(EVENT_TORRENT_UPLOAD, torrent);
 				} else if(changes === 'mb_downloaded') {
-					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
-						'mb_downloaded': torrent.mb_downloaded
-					}});
 					lDebug(`Torrent downloaded ${torrent.hash}`);
+
+					torrent.playing = true;
+					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
+						'mb_downloaded': torrent.mb_downloaded,
+						'playing': torrent.playing
+					}});
 					this.eventToListeners(EVENT_TORRENT_DOWNLOAD, torrent);
 					this.updateProgress(torrent);
 				}
 				break;
 			case EVENT_TORRENT_FINISHED:
+				lDebug(`Torrent finished ${torrent.hash}`);
+
+				torrent.playing = false;
 				await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
-					is_finished: true
+					'is_finished': true,
+					'playing': torrent.playing
 				}});
 				this.eventToListeners(EVENT_TORRENT_FINISHED, torrent);
 				break;

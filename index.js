@@ -62,7 +62,9 @@ module.exports.start = async(listener) => {
 		await checkConnection();
 
 		const staticTorrentList = new TorrentList();
-		staticTorrentList.addListener(listener);
+		if(listener) {
+			staticTorrentList.addListener(listener);
+		}
 
 		lDebug('Launch API');
 		launchApi(staticTorrentList);

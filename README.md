@@ -7,7 +7,6 @@ Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorr
 * Api for send action to rtorrent (pause, resume, erase)
 * Listener on pause, resume
 * Independant worker (garbage collector) for clean mongodb when files are manually erased. Optionally
-* Web socket on events
 * Web hook on events
 
 
@@ -19,6 +18,7 @@ Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorr
     * For add torrent + file
     * For get details about one torrent
     * For get list of all torrents registered
+* Web socket on events
 
 ## Requirements
 
