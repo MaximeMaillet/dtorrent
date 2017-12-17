@@ -6,27 +6,34 @@ const debug = require('debug');
 const multer  = require('multer');
 
 const lDebug = debug('dTorrent:api:debug');
-const app = express();
-
-/**
- * Allow Cros origin
- */
-app.use((req, res, next) => {
-	const allowedOrigins = ['http://localhost:3000'];
-	const {origin} = req.headers;
-	if(allowedOrigins.indexOf(origin) > -1){
-		res.setHeader('Access-Control-Allow-Origin', origin);
-	}
-	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-	res.setHeader('Access-Control-Allow-Credentials', true);
-
-	next();
-});
+let app = null;
 
 /**
  * Initialize API
  */
-module.exports = async(staticList) => {
+module.exports = async(staticList, _express) => {
+
+	if(_express !== null) {
+		app = _express;
+	} else {
+		app = express();
+	}
+
+	/**
+	 * Allow Cros origin
+	 */
+	app.use((req, res, next) => {
+		const allowedOrigins = ['http://localhost:3000'];
+		const {origin} = req.headers;
+		if(allowedOrigins.indexOf(origin) > -1){
+			res.setHeader('Access-Control-Allow-Origin', origin);
+		}
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+		res.setHeader('Access-Control-Allow-Credentials', true);
+
+		next();
+	});
+
 	app.use(bodyParser.urlencoded({ extended: false }));
 	app.use(bodyParser.json());
 	const upload = multer({dest: `${__dirname}/api/uploads/`});
@@ -56,7 +63,10 @@ module.exports = async(staticList) => {
 
 
 	lDebug(`API started on ${process.env.API_PORT}`);
-	app.listen(process.env.API_PORT);
+
+	if(_express === null) {
+		app.listen(process.env.API_PORT);
+	}
 };
 
 /**

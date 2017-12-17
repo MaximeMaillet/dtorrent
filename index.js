@@ -2,16 +2,15 @@ require('dotenv').config();
 
 const debug = require('debug');
 const mongoose = require('mongoose');
-const amqp = require('amqplib/callback_api');
 const TorrentList = require('./src/models/torrent-list');
 
 const launchApi = require('./src/api');
 const launchListener = require('./src/listener');
-const {promisify} = require('util');
 
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
+let express = null;
 /**
  * Add config
  * @param config
@@ -51,6 +50,13 @@ module.exports.addConfig = (config) => {
 };
 
 /**
+ * @param app
+ */
+module.exports.useExpress = (app) => {
+	express = app;
+};
+
+/**
  * Start app
  * @param listener
  * @return {Promise.<void>}
@@ -67,7 +73,7 @@ module.exports.start = async(listener) => {
 		}
 
 		lDebug('Launch API');
-		launchApi(staticTorrentList);
+		launchApi(staticTorrentList, express);
 
 		lDebug('Launch listener');
 		launchListener.start(staticTorrentList);
