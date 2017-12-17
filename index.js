@@ -85,9 +85,6 @@ async function checkConnection() {
 	try {
 		await initializeMongodb();
 		lDebug('Connections MongoDB OK');
-
-		await initilizeRabbitMq();
-		lDebug('Connections RabbitMQ OK');
 	} catch(e) {
 		lError(`Exception connections ${e}`);
 	}
@@ -115,14 +112,4 @@ async function initializeMongodb() {
 		);
 	});
 
-}
-
-/**
- * Init RabbitMQ
- * @return {Promise.<*>}
- */
-async function initilizeRabbitMq() {
-	const url_rabbit = `amqp://${process.env.RABBIT_MQ_USER}:${process.env.RABBIT_MQ_PASSWORD}@${process.env.RABBIT_MQ_HOST}:${process.env.RABBIT_MQ_PORT}`;
-	const amqpConnect = promisify(amqp.connect);
-	return amqpConnect(url_rabbit);
 }

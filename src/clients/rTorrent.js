@@ -49,7 +49,7 @@ module.exports.getTorrent = async(hash) => {
 		mb_uploaded: Number(upTotal),
 		mb_total: Number(sizeBytes),
 		is_active: isActive === '1',
-		ratio: ratio/100,
+		ratio: ratio/1000,
 		nb_seeders: Number(nbSeeders),
 		nb_leechers: Number(nbLeechers)
 	};

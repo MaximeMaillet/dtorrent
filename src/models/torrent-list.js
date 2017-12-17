@@ -187,7 +187,9 @@ function TorrentList() {
 			await Torrent.findOneAndUpdate({'hash': oldTorrent.hash}, {$set:{
 				'playing': false,
 				'progress': newTorrent.progress,
-				'is_finished': newTorrent.progress === 100
+				'is_finished': newTorrent.progress === 100,
+				'down_rate': newTorrent.down_rate,
+				'ratio': newTorrent.ratio
 			}});
 		} catch(e) {
 			lError(`[update] ${e}`);
