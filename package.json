@@ -17,7 +17,6 @@
   "author": "2Max <maxime.maillet93@gmail.com>",
   "license": "GNU General Public License v3.0",
   "dependencies": {
-    "amqplib": "^0.5.2",
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
     "debug": "^2.6.8",

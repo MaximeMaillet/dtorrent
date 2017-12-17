@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 /**
  * Initialize API
  */
-module.exports = async(listener) => {
+module.exports = async(staticList) => {
 	app.use(bodyParser.urlencoded({ extended: false }));
 	app.use(bodyParser.json());
 	const upload = multer({dest: `${__dirname}/api/uploads/`});
@@ -39,7 +39,7 @@ module.exports = async(listener) => {
 	]);
 
 	const controller = require('./api/controllers/torrent');
-	controller.init(listener);
+	controller.init(staticList);
 
 	app.put('/api/torrents', (req, res) => {
 		controller.put(req, res, completeUpload);

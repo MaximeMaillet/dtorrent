@@ -1,22 +1,17 @@
 require('dotenv').config();
 
 const debug = require('debug');
-const TorrentList = require('./models/torrent-list');
 const workerList = require('./workers/list');
 
 const lError = debug('dTorrent:listener:error');
-const staticTorrentList = new TorrentList();
 
 /**
- * @param listener
  * @return {Promise.<void>}
+ * @param staticList
  */
-module.exports.start = async(listener) => {
+module.exports.start = async(staticList) => {
 	try {
-		// TODO check all method for listener
-		staticTorrentList.addListener(listener);
-
-		launchListWorker();
+		launchListWorker(staticList);
 	} catch(error) {
 		lError(`Exception : ${error}`);
 	}
@@ -25,10 +20,10 @@ module.exports.start = async(listener) => {
 /**
  * @return {Promise.<void>}
  */
-async function launchListWorker() {
-	workerList.start(staticTorrentList);
+async function launchListWorker(staticList) {
+	workerList.start(staticList);
 	setInterval(() => {
-		workerList.start(staticTorrentList);
+		workerList.start(staticList);
 	}, 1500);
 }
 

@@ -3,6 +3,7 @@ require('dotenv').config();
 const debug = require('debug');
 const mongoose = require('mongoose');
 const amqp = require('amqplib/callback_api');
+const TorrentList = require('./src/models/torrent-list');
 
 const launchApi = require('./src/api');
 const launchListener = require('./src/listener');
@@ -60,11 +61,15 @@ module.exports.start = async(listener) => {
 		lDebug('Check connections');
 		await checkConnection();
 
+		const staticTorrentList = new TorrentList();
+		staticTorrentList.addListener(listener);
+
 		lDebug('Launch API');
-		launchApi(listener);
+		launchApi(staticTorrentList);
 
 		lDebug('Launch listener');
-		launchListener.start(listener);
+		launchListener.start(staticTorrentList);
+
 	} catch(e) {
 		lError(`Exception app ${e}`);
 	}

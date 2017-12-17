@@ -11,6 +11,8 @@ const watchTorrentChanges = ['mb_downloaded', 'mb_uploaded'];
 const EVENT_TORRENT_ADDED = 'torrent_added';
 const EVENT_TORRENT_FINISHED = 'torrent_finished';
 const EVENT_TORRENT_SETTED = 'torrent_setted';
+const EVENT_TORRENT_DOWNLOAD = 'torrent_download';
+const EVENT_TORRENT_UPLOAD = 'torrent_upload';
 
 /**
  * @type {TorrentList}
@@ -30,18 +32,37 @@ function TorrentList() {
 	 */
 	this.list = [];
 
-	/**
-	 * Listener
-	 * @type {null}
-	 */
-	this.listener = null;
+	this.listeners = [];
 
 	/**
 	 * Method for add listener
 	 * @param listener
 	 */
 	this.addListener = (listener) => {
-		this.listener = listener;
+		this.listeners.push(listener);
+	};
+
+	/**
+	 * @param event
+	 * @param torrent
+	 */
+	this.eventToListeners = (event, torrent) => {
+		this.listeners.map((listener) => {
+			switch(event) {
+				case EVENT_TORRENT_ADDED:
+					listener.onInsert(torrent);
+					break;
+				case EVENT_TORRENT_DOWNLOAD:
+					listener.onDownload(torrent);
+					break;
+				case EVENT_TORRENT_UPLOAD:
+					listener.onUpload(torrent);
+					break;
+				case EVENT_TORRENT_FINISHED:
+					listener.onFinished(torrent);
+					break;
+			}
+		});
 	};
 
 	/**
@@ -175,7 +196,7 @@ function TorrentList() {
 				const t = new Torrent(torrent);
 				t.save();
 				lDebug(`Torrent added : ${torrent.hash}`);
-				this.listener.onInsert(torrent);
+				this.eventToListeners(EVENT_TORRENT_ADDED, torrent);
 				break;
 			case EVENT_TORRENT_SETTED:
 				if(changes === 'mb_uploaded') {
@@ -183,13 +204,13 @@ function TorrentList() {
 						'mb_uploaded': torrent.mb_uploaded
 					}});
 					lDebug(`Torrent uploaded ${torrent.hash}`);
-					this.listener.onUpload(torrent);
+					this.eventToListeners(EVENT_TORRENT_UPLOAD, torrent);
 				} else if(changes === 'mb_downloaded') {
 					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
 						'mb_downloaded': torrent.mb_downloaded
 					}});
 					lDebug(`Torrent downloaded ${torrent.hash}`);
-					this.listener.onDownload(torrent);
+					this.eventToListeners(EVENT_TORRENT_DOWNLOAD, torrent);
 					this.updateProgress(torrent);
 				}
 				break;
@@ -197,7 +218,7 @@ function TorrentList() {
 				await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
 					is_finished: true
 				}});
-				this.listener.onFinished(torrent);
+				this.eventToListeners(EVENT_TORRENT_FINISHED, torrent);
 				break;
 		}
 	};

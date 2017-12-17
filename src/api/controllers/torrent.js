@@ -1,21 +1,18 @@
-
-const TorrentList = require('../../models/torrent-list');
 const debug = require('debug');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
-const queue = require('../../lib/queue');
 
-const staticTorrentList = new TorrentList();
 const lDebug = debug('dTorrent:api:controller:debug');
+let staticList = null;
 
 /**
  * Initialize api
- * @param listener
+ * @param _staticList
  */
-module.exports.init = (listener) => {
+module.exports.init = (_staticList) => {
 	lDebug('Initialize API controller');
-	staticTorrentList.addListener(listener);
+	staticList = _staticList;
 };
 
 /**
@@ -48,22 +45,53 @@ module.exports.listener = (req, res) => {
 	/**
 	 * Listener rabbitMQ
 	 */
-	queue.openQueue(global.QUEUE_KEY.TORRENTS, {
-		onError: function(error) {
-			lDebug(error);
-			res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
-			res.end();
+	const dListener = {
+		/**
+		 * Function called when torrent is inserted
+		 * @param torrent
+		 */
+		onInsert: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'insert',
+				'torrent': torrent
+			})} \n\n`);
 		},
-		onEmit: function(jsonMsg) {
-			res.write(`data: ${ JSON.stringify(jsonMsg) } \n\n`);
+		/**
+		 * Function called when torrent is uploading
+		 * @param torrent
+		 */
+		onUpload: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'upload',
+				'torrent': torrent
+			})} \n\n`);
+		},
+		/**
+		 * Function called when torrent is downloading
+		 * @param torrent
+		 */
+		onDownload: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'download',
+				'torrent': torrent
+			})} \n\n`);
+		},
+		/**
+		 * Function called when torrent is finished
+		 * @param torrent
+		 */
+		onFinished: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'finish',
+				'torrent': torrent
+			})} \n\n`);
 		}
-	});
+	};
+
+	staticList.addListener(dListener);
 
 	req.on('close', () => {
 		lDebug('Connection close');
-
-		queue.close();
-
 		clearInterval(refreshIntervalId);
 		res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
 		res.end();
