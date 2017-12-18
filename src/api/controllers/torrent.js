@@ -16,92 +16,6 @@ module.exports.init = (_staticList) => {
 };
 
 /**
- * Web socket
- * @param req
- * @param res
- */
-module.exports.listener = (req, res) => {
-
-	lDebug('Open connection');
-
-	req.socket.setTimeout(120000);
-	res.writeHead(200, {
-		'Content-Type': 'text/event-stream',
-		'Cache-Control': 'no-cache',
-		'Connection': 'keep-alive'
-	});
-	res.write('\n');
-
-	const refreshIntervalId = setInterval(() => {
-		lDebug('Send ping to client');
-		res.write(`data: ${JSON.stringify({'event': 'ping'})} \n\n`);
-	}, 90000);
-
-	/**
-	 * @TODO
-	 * Check de connexion
-	 */
-
-	/**
-	 * Listener rabbitMQ
-	 */
-	const dListener = {
-		/**
-		 * Function called when torrent is inserted
-		 * @param torrent
-		 */
-		onInsert: function(torrent) {
-			res.write(`data: ${ JSON.stringify({
-				'event': 'insert',
-				'torrent': torrent
-			})} \n\n`);
-		},
-		/**
-		 * Function called when torrent is uploading
-		 * @param torrent
-		 */
-		onUpload: function(torrent) {
-			res.write(`data: ${ JSON.stringify({
-				'event': 'upload',
-				'torrent': torrent
-			})} \n\n`);
-		},
-		/**
-		 * Function called when torrent is downloading
-		 * @param torrent
-		 */
-		onDownload: function(torrent) {
-			res.write(`data: ${ JSON.stringify({
-				'event': 'download',
-				'torrent': torrent
-			})} \n\n`);
-		},
-		/**
-		 * Function called when torrent is finished
-		 * @param torrent
-		 */
-		onFinished: function(torrent) {
-			res.write(`data: ${ JSON.stringify({
-				'event': 'finish',
-				'torrent': torrent
-			})} \n\n`);
-		}
-	};
-
-	staticList.addListener(dListener);
-
-	req.on('close', () => {
-		lDebug('Connection close');
-		staticList.removeListener(dListener);
-		clearInterval(refreshIntervalId);
-		res.write(`data: ${ JSON.stringify({event: 'disconnect'}) } \n\n`);
-		res.end();
-	});
-
-};
-
-
-/**
  * @TODO
  * @param req
  * @param res
@@ -125,6 +39,42 @@ module.exports.getOne = async(req, res) => {
 
 	try {
 		return res.send((await staticList.getTorrent(req.params.hash)));
+	} catch(e) {
+		res.status(500).send(e);
+	}
+};
+
+/**
+ * Pause torrent
+ * @param req
+ * @param res
+ * @return {Promise.<void>}
+ */
+module.exports.pause = async(req, res) => {
+	if(!req.params.hash) {
+		return res.status(422).status('Hash is missing');
+	}
+
+	try {
+		return res.send((await staticList.pause(req.params.hash)));
+	} catch(e) {
+		res.status(500).send(e);
+	}
+};
+
+/**
+ * Resume torrent
+ * @param req
+ * @param res
+ * @return {Promise.<void>}
+ */
+module.exports.resume = async(req, res) => {
+	if(!req.params.hash) {
+		return res.status(422).status('Hash is missing');
+	}
+
+	try {
+		return res.send((await staticList.resume(req.params.hash)));
 	} catch(e) {
 		res.status(500).send(e);
 	}

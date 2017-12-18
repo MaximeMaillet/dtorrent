@@ -1,4 +1,5 @@
 require('dotenv').config();
+'use strict';
 
 const xmlrpc = require('xmlrpc');
 
@@ -53,6 +54,14 @@ module.exports.getTorrent = async(hash) => {
 		nb_seeders: Number(nbSeeders),
 		nb_leechers: Number(nbLeechers)
 	};
+};
+
+module.exports.pause = async(hash) => {
+	return methodCall('d.pause', [hash]);
+};
+
+module.exports.resume = async(hash) => {
+	return methodCall('d.resume', [hash]);
 };
 
 /**

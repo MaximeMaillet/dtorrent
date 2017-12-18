@@ -47,6 +47,10 @@ module.exports = async(staticList, _express) => {
 
 	const controller = require('./api/controllers/torrent');
 	controller.init(staticList);
+	const controllerWebSocket = require('./api/controllers/web-socket');
+	controllerWebSocket.init(staticList);
+
+	app.get('/listener', controllerWebSocket.listener);
 
 	app.put('/api/torrents', (req, res) => {
 		controller.put(req, res, completeUpload);
@@ -57,9 +61,11 @@ module.exports = async(staticList, _express) => {
 	});
 
 	app.delete('/api/torrents/:hash', controller.delete);
-	app.get('/api/torrents/:hash', controller.getOne);
 	app.get('/api/torrents', controller.getAll);
-	app.get('/listener', controller.listener);
+	app.get('/api/torrents/:hash', controller.getOne);
+
+	app.get('/api/torrents/:hash/pause', controller.pause);
+	app.get('/api/torrents/:hash/resume', controller.resume);
 
 
 	lDebug(`API started on ${process.env.API_PORT}`);

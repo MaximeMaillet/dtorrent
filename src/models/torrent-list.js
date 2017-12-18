@@ -279,4 +279,22 @@ function TorrentList() {
 				break;
 		}
 	};
+
+	/**
+	 * Pause torrent
+	 * @param hash
+	 * @return {Promise}
+	 */
+	this.pause = async(hash) => {
+		return clientTorrent.pause(hash);
+	};
+
+	/**
+	 * Resume torrent
+	 * @param hash
+	 * @return {Promise}
+	 */
+	this.resume = async(hash) => {
+		return clientTorrent.resume(hash);
+	};
 }
