@@ -130,7 +130,17 @@ module.exports.post = (req, res, cpUpload) => {
 };
 
 
-module.exports.delete = (req, res) => {};
+module.exports.erase = async(req, res) => {
+	if(!req.params.hash) {
+		return res.status(422).status('Hash is missing');
+	}
+
+	try {
+		return res.send((await staticList.erase(req.params.hash)));
+	} catch(e) {
+		res.status(500).send(e);
+	}
+};
 
 
 /**
