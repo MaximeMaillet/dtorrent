@@ -129,7 +129,6 @@ module.exports.post = (req, res, cpUpload) => {
 	});
 };
 
-
 module.exports.delete = async(req, res) => {
 	if(!req.params.hash) {
 		return res.status(422).status('Hash is missing');
