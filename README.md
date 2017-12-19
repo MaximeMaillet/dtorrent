@@ -52,6 +52,7 @@ var dConfig = {
   mongo_host: '127.0.0.1', // host for mongodb
   mongo_port: 27017, // port for mongodb
   api_port: 8080, // port for API
+  api_websocket: true, // Enable web socket for handle events
 };
 
 var dListener = {
@@ -91,6 +92,7 @@ RTORRENT_PATH=/RPC2
 MONGO_HOST=127.0.0.1
 MONGO_PORT=27017
 API_PORT=8080
+API_WEBSOCKET=true
 ```
 
 
