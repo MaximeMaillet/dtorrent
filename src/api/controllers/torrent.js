@@ -143,7 +143,7 @@ module.exports.delete = async(req, res) => {
 	}
 
 	try {
-		console.log((await staticList.erase(req.params.hash)));
+		await staticList.erase(req.params.hash);
 		return res.send({success: true});
 	} catch(e) {
 		res.status(500).send(e);

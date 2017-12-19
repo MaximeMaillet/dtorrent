@@ -93,6 +93,19 @@ MONGO_PORT=27017
 API_PORT=8080
 ```
 
+
+## Endpoints API
+
+| Method | endpoint | IN | OUT |
+|---|---|---|---|
+| GET | /api/torrents | N/A | [{Torrent}, {...}] |
+| GET | /api/torrents/{hash} | N/A | {Torrent} |
+| POST | /api/torrents | {torrent: [[File]], file: [[File]]} | string |
+| PUT | /api/torrents/{hash}/pause | N/A | {success} |
+| PUT | /api/torrents/{hash}/resume | N/A | {success} |
+| DELETE | /api/torrents/{hash} | N/A | {success} |
+
+
 ## Nginx
 
 #### Install
