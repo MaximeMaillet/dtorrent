@@ -64,6 +64,10 @@ module.exports.resume = async(hash) => {
 	return methodCall('d.resume', [hash]);
 };
 
+module.exports.erase = async(hash) => {
+	return methodCall('d.erase', [hash]);
+};
+
 /**
  * @return {*}
  */

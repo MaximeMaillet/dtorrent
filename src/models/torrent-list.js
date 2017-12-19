@@ -297,4 +297,13 @@ function TorrentList() {
 	this.resume = async(hash) => {
 		return clientTorrent.resume(hash);
 	};
+
+	/**
+	 * Erase torrent
+	 * @param hash
+	 * @return {Promise.<*>}
+	 */
+	this.erase = async(hash) => {
+		return clientTorrent.erase(hash);
+	};
 }
