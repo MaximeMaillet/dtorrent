@@ -11,7 +11,7 @@ let app = null;
 /**
  * Initialize API
  */
-module.exports = async(staticList, _express) => {
+module.exports.enable = async(staticList, _express) => {
 
 	if(_express !== null) {
 		app = _express;
@@ -21,7 +21,23 @@ module.exports = async(staticList, _express) => {
 
 	app.use(bodyParser.urlencoded({ extended: false }));
 	app.use(bodyParser.json());
-	const upload = multer({dest: `${__dirname}/api/uploads/`});
+
+	const {completeUpload, fileUpload} = enableMulter();
+	enableApi(staticList, completeUpload, fileUpload);
+	lDebug(`API started on ${process.env.API_PORT}`);
+
+	if(process.env.API_WEBSOCKET) {
+		enableWebSocket(staticList);
+		lDebug(`Web socket started on ${process.env.API_PORT}`);
+	}
+
+	if(_express === null) {
+		app.listen(process.env.API_PORT);
+	}
+};
+
+function enableMulter() {
+	const upload = multer({dest: `${__dirname}/../../public/uploads/`});
 	const completeUpload = upload.fields([
 		{ name: 'torrent', maxCount: 1 },
 		{ name: 'file', maxCount: 1 }
@@ -29,42 +45,42 @@ module.exports = async(staticList, _express) => {
 	const fileUpload = upload.fields([
 		{ name: 'file', maxCount: 1 }
 	]);
+	return {
+		completeUpload,
+		fileUpload
+	};
+}
 
-	const controller = require('./api/controllers/torrent');
-	controller.init(staticList);
-	const controllerWebSocket = require('./api/controllers/web-socket');
+/**
+ * Enable web socket
+ * @param staticList
+ */
+function enableWebSocket(staticList) {
+	const controllerWebSocket = require('./controllers/web-socket');
 	controllerWebSocket.init(staticList);
 
 	app.get('/listener', controllerWebSocket.listener);
+}
+
+/**
+ * Enable API
+ * @param staticList
+ * @param completeUpload
+ * @param fileUpload
+ */
+function enableApi(staticList, completeUpload, fileUpload) {
+	const controller = require('./controllers/torrent');
+	controller.init(staticList);
 
 	app.put('/api/torrents', (req, res) => {
 		controller.put(req, res, completeUpload);
 	});
-
 	app.post('/api/torrents', (req, res) => {
 		controller.post(req, res, fileUpload);
 	});
-
-	app.delete('/api/torrents/:hash', controller.delete);
 	app.get('/api/torrents', controller.getAll);
 	app.get('/api/torrents/:hash', controller.getOne);
-
 	app.put('/api/torrents/:hash/pause', controller.pause);
 	app.put('/api/torrents/:hash/resume', controller.resume);
-
-
-	lDebug(`API started on ${process.env.API_PORT}`);
-
-	if(_express === null) {
-		app.listen(process.env.API_PORT);
-	}
-};
-
-/**
- *
- * PUT /api/torrent (fichier .torrent)
- * POST /api/torrent (fichier à torrentifier + datas)
- * DELETE /api/torrent
- * GET one /api/torrents/:hash
- * GET all /api/torrents
- */
+	app.delete('/api/torrents/:hash', controller.delete);
+}

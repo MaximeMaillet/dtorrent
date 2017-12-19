@@ -3,7 +3,7 @@ const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
 
-const lDebug = debug('dTorrent:api:controller:debug');
+const lDebug = debug('dTorrent:api:controllers:debug');
 let staticList = null;
 
 /**

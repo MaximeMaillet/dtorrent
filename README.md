@@ -50,7 +50,8 @@ var dConfig = {
   rtorrent_port: 8092, // Port of client torrent
   rtorrent_path: '/RPC2', // Path to join client torrent via XML RPC
   mongo_host: '127.0.0.1', // host for mongodb
-  mongo_port: 27017 // port for mongodb
+  mongo_port: 27017, // port for mongodb
+  api_port: 8080, // port for API
 };
 
 var dListener = {
@@ -71,6 +72,13 @@ var dListener = {
 // Optional, you cas use environment variable
 dtorrent.addConfig(dConfig);
 
+dtorrent.enableExpressApi()
+// Or
+const express = require('express');
+const app = express();
+dtorrent.enableExpressApi(app);
+
+// Start listener
 dtorrent.start(dConfig, dListener);
 ```
 
@@ -82,6 +90,7 @@ RTORRENT_PORT=8092
 RTORRENT_PATH=/RPC2
 MONGO_HOST=127.0.0.1
 MONGO_PORT=27017
+API_PORT=8080
 ```
 
 ## Nginx

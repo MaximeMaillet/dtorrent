@@ -2,57 +2,39 @@ require('dotenv').config();
 
 const debug = require('debug');
 const mongoose = require('mongoose');
-const TorrentList = require('./src/models/torrent-list');
 
-const launchApi = require('./src/api');
-const launchListener = require('./src/listener');
+const TorrentList = require('./src/models/torrent-list');
+const api = require('./src/api/api');
+const launchListener = require('./src/listener/listener');
 
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
-let express = null;
+let express = null, api_enabled = false;
+
 /**
  * Add config
  * @param config
  */
 module.exports.addConfig = (config) => {
-	if(config.rtorrent_host) {
-		process.env.RTORRENT_HOST = config.rtorrent_host;
-	}
+	const configs = [
+		'rtorrent_host', 'rtorrent_port', 'rtorrent_path',
+		'mongo_host', 'mongo_port',
+		'api_port', 'api_websocket'
+	];
 
-	if(config.rtorrent_port) {
-		process.env.RTORRENT_PORT = config.rtorrent_port;
-	}
-
-	if(config.rtorrent_path) {
-		process.env.RTORRENT_PATH = config.rtorrent_path;
-	}
-
-	if(config.mongo_host) {
-		process.env.MONGO_HOST = config.mongo_host;
-	}
-
-	if(config.mongo_port) {
-		process.env.MONGO_PORT = config.mongo_port;
-	}
-
-	if(config.rabbit_mq_host) {
-		process.env.RABBIT_MQ_HOST = config.rabbit_mq_host;
-	}
-
-	if(config.rabbit_mq_port) {
-		process.env.RABBIT_MQ_PORT = config.rabbit_mq_port;
-	}
-
-	if(config.rabbit_mq_nodename) {
-		process.env.RABBIT_MQ_NODENAME = config.rabbit_mq_nodename;
+	for(const i in configs) {
+		if(configs[i]) {
+			process.env[configs[i].toUpperCase()] = config[configs[i]];
+		}
 	}
 };
 
 /**
  * @param app
  */
-module.exports.useExpress = (app) => {
+module.exports.enableExpressApi = (app) => {
+	api_enabled = true;
 	express = app;
 };
 
@@ -72,8 +54,10 @@ module.exports.start = async(listener) => {
 			staticTorrentList.addListener(listener);
 		}
 
-		lDebug('Launch API');
-		launchApi(staticTorrentList, express);
+		if(api_enabled) {
+			lDebug('Launch API');
+			api.enable(staticTorrentList, express);
+		}
 
 		lDebug('Launch listener');
 		launchListener.start(staticTorrentList);
