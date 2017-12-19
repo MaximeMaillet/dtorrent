@@ -52,7 +52,8 @@ module.exports.getTorrent = async(hash) => {
 		is_active: isActive === '1',
 		ratio: ratio/1000,
 		nb_seeders: Number(nbSeeders),
-		nb_leechers: Number(nbLeechers)
+		nb_leechers: Number(nbLeechers),
+		is_finished: Math.round((completedByte*100) / sizeBytes) === 100
 	};
 };
 
@@ -66,6 +67,10 @@ module.exports.resume = async(hash) => {
 
 module.exports.erase = async(hash) => {
 	return methodCall('d.erase', [hash]);
+};
+
+module.exports.open = async(hash) => {
+	return methodCall('d.open', [hash]);
 };
 
 /**

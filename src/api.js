@@ -19,21 +19,6 @@ module.exports = async(staticList, _express) => {
 		app = express();
 	}
 
-	/**
-	 * Allow Cros origin
-	 */
-	app.use((req, res, next) => {
-		const allowedOrigins = ['http://localhost:3000'];
-		const {origin} = req.headers;
-		if(allowedOrigins.indexOf(origin) > -1){
-			res.setHeader('Access-Control-Allow-Origin', origin);
-		}
-		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-		res.setHeader('Access-Control-Allow-Credentials', true);
-
-		next();
-	});
-
 	app.use(bodyParser.urlencoded({ extended: false }));
 	app.use(bodyParser.json());
 	const upload = multer({dest: `${__dirname}/api/uploads/`});
@@ -64,8 +49,8 @@ module.exports = async(staticList, _express) => {
 	app.get('/api/torrents', controller.getAll);
 	app.get('/api/torrents/:hash', controller.getOne);
 
-	app.get('/api/torrents/:hash/pause', controller.pause);
-	app.get('/api/torrents/:hash/resume', controller.resume);
+	app.put('/api/torrents/:hash/pause', controller.pause);
+	app.put('/api/torrents/:hash/resume', controller.resume);
 
 
 	lDebug(`API started on ${process.env.API_PORT}`);

@@ -4,23 +4,26 @@ Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorr
 
 ##### Todo
 
-* Listener on pause, resume
 * Independant worker (garbage collector) for clean mongodb when files are manually erased. Optionally
 * Web hook on events
 
-##### To test
-
-* Api for send action to rtorrent (pause, resume, erase)
-
 ##### Features
 
-* Receive event when torrent added, finished, in progress (downloading & uploading)
+* Receive event when torrent is :
+    * added
+    * finished
+    * in progress (downloading & uploading)
+    * active (play & resume)
+    * remove
 * Docker for rtorrent deamon (with nginx & xml-rpc) https://gitlab.deuxmax.fr/torrent/rtorrent-deamon
 * Api
     * For add torrent + file
     * For get details about one torrent
     * For get list of all torrents registered
+    * For play & pause
+    * For soft delete
 * Web socket on events
+* Api for send action to rtorrent (pause, resume, erase)
 
 ## Requirements
 

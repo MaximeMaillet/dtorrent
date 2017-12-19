@@ -53,6 +53,24 @@ module.exports.listener = (req, res) => {
 				'torrent': torrent
 			})} \n\n`);
 		},
+		onUpdated: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'update',
+				'torrent': torrent
+			})} \n\n`);
+		},
+		onActive: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'active',
+				'torrent': torrent
+			})} \n\n`);
+		},
+		onRemove: function(torrent) {
+			res.write(`data: ${ JSON.stringify({
+				'event': 'remove',
+				'torrent': torrent
+			})} \n\n`);
+		},
 		/**
 		 * Function called when torrent is uploading
 		 * @param torrent

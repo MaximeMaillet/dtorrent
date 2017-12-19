@@ -56,7 +56,8 @@ module.exports.pause = async(req, res) => {
 	}
 
 	try {
-		return res.send((await staticList.pause(req.params.hash)));
+		await staticList.pause(req.params.hash);
+		return res.send({success: true});
 	} catch(e) {
 		res.status(500).send(e);
 	}
@@ -74,7 +75,8 @@ module.exports.resume = async(req, res) => {
 	}
 
 	try {
-		return res.send((await staticList.resume(req.params.hash)));
+		await staticList.resume(req.params.hash);
+		return res.send({success: true});
 	} catch(e) {
 		res.status(500).send(e);
 	}
@@ -129,13 +131,20 @@ module.exports.post = (req, res, cpUpload) => {
 	});
 };
 
+/**
+ * Erase torrent
+ * @param req
+ * @param res
+ * @return {Promise.<void>}
+ */
 module.exports.delete = async(req, res) => {
 	if(!req.params.hash) {
 		return res.status(422).status('Hash is missing');
 	}
 
 	try {
-		return res.send((await staticList.erase(req.params.hash)));
+		console.log((await staticList.erase(req.params.hash)));
+		return res.send({success: true});
 	} catch(e) {
 		res.status(500).send(e);
 	}

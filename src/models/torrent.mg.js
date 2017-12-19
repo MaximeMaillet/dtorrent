@@ -13,5 +13,8 @@ module.exports = new Schema({
 	ratio: Number,
 	is_active: Boolean,
 	is_filled: Boolean,
-	is_finished: Boolean
+	is_removed: Boolean,
+	is_finished: Boolean,
+	nb_leechers: Number,
+	nb_seeders: Number,
 });

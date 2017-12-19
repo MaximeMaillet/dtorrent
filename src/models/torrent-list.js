@@ -7,12 +7,17 @@ const mongoose = require('mongoose');
 const lError = debug('dTorrent:model:error');
 const lDebug = debug('dTorrent:model:debug');
 
-const watchTorrentChangesForEvent = ['mb_downloaded', 'mb_uploaded'];
+const watchTorrentChangesForEvent = [
+	'mb_downloaded', 'mb_uploaded',
+	'progress', 'is_finished', 'down_rate', 'ratio', 'nb_leechers', 'nb_seeders', 'is_active'
+];
 const EVENT_TORRENT_ADDED = 'torrent_added';
 const EVENT_TORRENT_FINISHED = 'torrent_finished';
 const EVENT_TORRENT_SETTED = 'torrent_setted';
 const EVENT_TORRENT_DOWNLOAD = 'torrent_download';
 const EVENT_TORRENT_UPLOAD = 'torrent_upload';
+const EVENT_TORRENT_ACTIVED = 'torrent_active';
+const EVENT_TORRENT_ERASED = 'torrent_erased';
 
 /**
  * @type {TorrentList}
@@ -63,6 +68,12 @@ function TorrentList() {
 				case EVENT_TORRENT_ADDED:
 					listener.onInsert(torrent);
 					break;
+				case EVENT_TORRENT_SETTED:
+					listener.onUpdated(torrent);
+					break;
+				case EVENT_TORRENT_ACTIVED:
+					listener.onActive(torrent);
+					break;
 				case EVENT_TORRENT_DOWNLOAD:
 					listener.onDownload(torrent);
 					break;
@@ -71,6 +82,9 @@ function TorrentList() {
 					break;
 				case EVENT_TORRENT_FINISHED:
 					listener.onFinished(torrent);
+					break;
+				case EVENT_TORRENT_ERASED:
+					listener.onRemove(torrent);
 					break;
 			}
 		});
@@ -95,7 +109,9 @@ function TorrentList() {
 			this.onEvent(EVENT_TORRENT_ADDED, (await this.fillTorrent({
 				hash: hash,
 				is_filled: false,
-				is_finished: false}
+				is_finished: false,
+				is_removed: false,
+			}
 			)));
 		} else {
 			this.update(hash);
@@ -144,7 +160,7 @@ function TorrentList() {
 	 * @return {Promise.<*>}
 	 */
 	this.getListFromDb = async() => {
-		const res = await Torrent.find();
+		const res = await Torrent.find({is_removed: false});
 		if(res) {
 			return res;
 		}
@@ -158,7 +174,7 @@ function TorrentList() {
 	 */
 	this.fillTorrent = async(_torrent) => {
 		try {
-			const torrent = await this.getTorrent(_torrent.hash);
+			const torrent = Object.assign(_torrent, (await this.getTorrent(_torrent.hash)));
 			torrent.is_filled = true;
 			torrent.playing = true;
 			return torrent;
@@ -177,20 +193,16 @@ function TorrentList() {
 			const newTorrent = await this.getTorrent(hash);
 			const changes = await this.getChanges(oldTorrent, newTorrent);
 
+			Torrent.findOneAndUpdate({'hash': hash}, {$set:{
+				'is_removed': false,
+			}});
+
 			if(changes.length > 0) {
 				const self = this;
 				changes.forEach((field) => {
 					self.onEvent(EVENT_TORRENT_SETTED, newTorrent, field);
 				});
 			}
-
-			await Torrent.findOneAndUpdate({'hash': oldTorrent.hash}, {$set:{
-				'playing': false,
-				'progress': newTorrent.progress,
-				'is_finished': newTorrent.progress === 100,
-				'down_rate': newTorrent.down_rate,
-				'ratio': newTorrent.ratio
-			}});
 		} catch(e) {
 			lError(`[update] ${e}`);
 		}
@@ -248,24 +260,34 @@ function TorrentList() {
 			case EVENT_TORRENT_SETTED:
 				if(changes === 'mb_uploaded') {
 					lDebug(`Torrent uploaded ${torrent.hash}`);
-
 					torrent.playing = true;
-					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
-						'mb_uploaded': torrent.mb_uploaded,
-						'playing': torrent.playing
-					}});
 					this.eventToListeners(EVENT_TORRENT_UPLOAD, torrent);
-				} else if(changes === 'mb_downloaded') {
+				}
+				else if(changes === 'mb_downloaded') {
 					lDebug(`Torrent downloaded ${torrent.hash}`);
-
 					torrent.playing = true;
-					await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
-						'mb_downloaded': torrent.mb_downloaded,
-						'playing': torrent.playing
-					}});
 					this.eventToListeners(EVENT_TORRENT_DOWNLOAD, torrent);
 					this.updateProgress(torrent);
 				}
+				else if(changes === 'is_active') {
+					this.eventToListeners(EVENT_TORRENT_ACTIVED, torrent);
+				}
+
+				lDebug(`Torrent updated ${torrent.hash} (${changes})`);
+
+				await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
+					'playing': torrent.playing,
+					'progress': torrent.progress,
+					'is_finished': torrent.progress === 100,
+					'down_rate': torrent.down_rate,
+					'ratio': torrent.ratio,
+					'nb_leechers': torrent.nb_leechers,
+					'nb_seeders': torrent.nb_seeders,
+					'is_active': torrent.is_active,
+					'mb_downloaded': torrent.mb_downloaded,
+					'mb_uploaded': torrent.mb_uploaded,
+				}});
+				this.eventToListeners(EVENT_TORRENT_SETTED, torrent);
 				break;
 			case EVENT_TORRENT_FINISHED:
 				lDebug(`Torrent finished ${torrent.hash}`);
@@ -276,6 +298,12 @@ function TorrentList() {
 					'playing': torrent.playing
 				}});
 				this.eventToListeners(EVENT_TORRENT_FINISHED, torrent);
+				break;
+			case EVENT_TORRENT_ERASED:
+				await Torrent.findOneAndUpdate({'hash': torrent.hash}, {$set:{
+					'is_removed': true
+				}});
+				this.eventToListeners(EVENT_TORRENT_ERASED, torrent);
 				break;
 		}
 	};
@@ -304,6 +332,8 @@ function TorrentList() {
 	 * @return {Promise.<*>}
 	 */
 	this.erase = async(hash) => {
-		return clientTorrent.erase(hash);
+		const torrent = await this.getTorrentFromDb(hash);
+		this.onEvent(EVENT_TORRENT_ERASED, torrent);
+		return true;
 	};
 }
