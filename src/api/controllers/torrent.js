@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const lDebug = debug('dTorrent:api:controllers:debug');
 let staticList = null;
-
+'use strict';
 /**
  * Initialize api
  * @param _staticList
@@ -13,17 +13,6 @@ let staticList = null;
 module.exports.init = (_staticList) => {
 	lDebug('Initialize API controller');
 	staticList = _staticList;
-};
-
-/**
- * @TODO
- * @param req
- * @param res
- * @param cpUpload
- * @return {Promise.<void>}
- */
-module.exports.put = async(req, res, cpUpload) => {
-
 };
 
 /**
@@ -108,26 +97,37 @@ module.exports.post = (req, res, cpUpload) => {
 			return res.status(500).send(err);
 		}
 
-		checkTorrent(req.files.torrent[0], req.files.file[0])
-			.then(({success, hash}) => {
-				if(success) {
-					moveFile(req.files.file[0])
-						.then(() => {
-							return moveTorrent(req.files.torrent[0]);
-						})
-						.then(() => {
-							staticList.onEvent('torrent_added', {
-								'hash': hash,
-								'is_filled': false,
-								'is_finished': true
-							});
-						})
-					;
+		if(req.files.torrent && req.files.file) {
+			addTorrentAndFile(req.files.torrent[0], req.files.file[0])
+				.then((hash) => {
+					staticList.onEvent('torrent_added', {
+						'hash': hash,
+						'is_filled': false,
+						'is_finished': true
+					});
 					res.send('Torrent is uploaded');
-				} else {
-					res.status(422).send('Hash check is not ok');
-				}
-			});
+				})
+				.catch((e) => {
+					if(e.name === 'hash') {
+						res.status(422).send('Hash check is not ok');
+					} else {
+						res.status(500).send(e.name);
+					}
+				});
+		}
+		else if(req.files.file && req.body.tracker) {
+			createTorrentFromFile(req.files.file, req.body.tracker)
+				.then(({torrent, file}) => {
+					return checkTorrent(torrent, file)
+						.then((ok) => {
+						console.log(torrent);
+							console.log(ok);
+						})
+						.catch((e) => {
+							console.log(e);
+						});
+				});
+		}
 	});
 };
 
@@ -150,15 +150,14 @@ module.exports.delete = async(req, res) => {
 	}
 };
 
-
 /**
  * Check hash
  * @param torrentFile
  * @param file
  */
 function checkTorrent(torrentFile, file) {
-	const ntRead = promisify(nt.read);
-	return ntRead(torrentFile.path)
+	const _ntRead = promisify(nt.read);
+	return _ntRead(torrentFile)
 		.then((torrent) => {
 			return new Promise((resolve, reject) => {
 				torrent.metadata.info.name = file.filename;
@@ -219,5 +218,56 @@ function move(file, targetDirectory) {
 				resolve();
 			}
 		});
+	});
+}
+
+/**
+ * Put torrent + file
+ * @param torrent
+ * @param file
+ */
+function addTorrentAndFile(torrent, file) {
+	return checkTorrent(torrent.path, file)
+		.then(({success, hash}) => {
+			if(success) {
+				moveFile(file)
+					.then(() => {
+						return moveTorrent(torrent);
+					})
+					.then(() => {
+						return hash;
+					})
+				;
+			} else {
+				throw new Error('hash');
+			}
+		});
+}
+
+/**
+ * Add file
+ * @param file
+ */
+function addFile(file, tracker) {
+	const torrent = createTorrentFromFile(files, tracker);
+	return addTorrentAndFile(torrent, file);
+}
+
+function createTorrentFromFile(files, tracker) {
+	return new Promise((resolve, reject) => {
+		const names = files.map((file) => {
+			return file.filename;
+		});
+
+		nt.makeWrite(`${files[0].originalname}.torrent`, tracker, files[0].destination,
+			names,
+			(err, torrent) => {
+				if (err) reject(err);
+
+				resolve({
+					'torrent': torrent,
+					'file': files
+				});
+			});
 	});
 }

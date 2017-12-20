@@ -19,11 +19,15 @@ module.exports.enable = async(staticList, _express) => {
 		app = express();
 	}
 
-	app.use(bodyParser.urlencoded({ extended: false }));
+	app.use(bodyParser.urlencoded({
+		limit: '500mb',
+		extended: true,
+		parameterLimit: 1000000
+	}));
 	app.use(bodyParser.json());
 
-	const {completeUpload, fileUpload} = enableMulter();
-	enableApi(staticList, completeUpload, fileUpload);
+	const completeUpload = enableMulter();
+	enableApi(staticList, completeUpload);
 	lDebug(`API started on ${process.env.API_PORT}`);
 
 	if(process.env.API_WEBSOCKET) {
@@ -38,17 +42,10 @@ module.exports.enable = async(staticList, _express) => {
 
 function enableMulter() {
 	const upload = multer({dest: `${__dirname}/../../public/uploads/`});
-	const completeUpload = upload.fields([
+	return upload.fields([
 		{ name: 'torrent', maxCount: 1 },
-		{ name: 'file', maxCount: 1 }
+		{ name: 'file', maxCount: 8 }
 	]);
-	const fileUpload = upload.fields([
-		{ name: 'file', maxCount: 1 }
-	]);
-	return {
-		completeUpload,
-		fileUpload
-	};
 }
 
 /**
@@ -68,15 +65,12 @@ function enableWebSocket(staticList) {
  * @param completeUpload
  * @param fileUpload
  */
-function enableApi(staticList, completeUpload, fileUpload) {
+function enableApi(staticList, completeUpload) {
 	const controller = require('./controllers/torrent');
 	controller.init(staticList);
 
-	app.put('/api/torrents', (req, res) => {
-		controller.put(req, res, completeUpload);
-	});
 	app.post('/api/torrents', (req, res) => {
-		controller.post(req, res, fileUpload);
+		controller.post(req, res, completeUpload);
 	});
 	app.get('/api/torrents', controller.getAll);
 	app.get('/api/torrents/:hash', controller.getOne);

@@ -60,7 +60,7 @@ module.exports.start = async(listener) => {
 		}
 
 		lDebug('Launch listener');
-		launchListener.start(staticTorrentList);
+		// launchListener.start(staticTorrentList);
 
 	} catch(e) {
 		lError(`Exception app ${e}`);

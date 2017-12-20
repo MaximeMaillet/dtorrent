@@ -8,7 +8,7 @@ let staticList = null;
  * @param _staticList
  */
 module.exports.init = (_staticList) => {
-	lDebug('Initialize API controller');
+	lDebug('Initialize Web Socket controller');
 	staticList = _staticList;
 };
 
