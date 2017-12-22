@@ -196,6 +196,9 @@ function TorrentList() {
 	 * @return {Promise}
 	 */
 	this.pause = async(hash) => {
+		const torrent = this.getFromDb(hash);
+		torrent.playing = false;
+		this.onEvent(EVENT_TORRENT_SETTED, torrent, ['playing']);
 		return clientTorrent.pause(hash);
 	};
 
@@ -205,6 +208,9 @@ function TorrentList() {
 	 * @return {Promise}
 	 */
 	this.resume = async(hash) => {
+		const torrent = this.getFromDb(hash);
+		torrent.playing = true;
+		this.onEvent(EVENT_TORRENT_SETTED, torrent, ['playing']);
 		return clientTorrent.resume(hash);
 	};
 
@@ -222,6 +228,14 @@ function TorrentList() {
 	 */
 	this.getFromDb = async(hash) => {
 		return await Torrent.findOne({'hash': hash});
+	};
+
+	/**
+	 * Get all torrent from DB
+	 * @return {Promise}
+	 */
+	this.getList = async() => {
+		return await Torrent.find({'is_removed': false});
 	};
 
 	/**

@@ -79,7 +79,7 @@ module.exports.resume = async(req, res) => {
  */
 module.exports.getAll = async(req, res) => {
 	try {
-		return res.send((await staticList.getList(true, req.query.details)));
+		return res.send((await staticList.getList()));
 	} catch(e) {
 		res.status(500).send(e);
 	}
