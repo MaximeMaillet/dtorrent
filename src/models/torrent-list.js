@@ -73,7 +73,7 @@ function TorrentList() {
 			case EVENT_TORRENT_ADDED:
 				lDebug(`Torrent added : ${torrent.hash}`);
 				let newTorrent = await this.get(torrent.hash);
-				newTorrent = Object.assign(torrent, {
+				newTorrent = Object.assign(newTorrent, {
 					playing: true,
 					is_finished: newTorrent.progress === 100,
 					is_removed: false,

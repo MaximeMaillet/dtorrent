@@ -28,16 +28,16 @@ module.exports.enable = async(staticList, _express) => {
 
 	const completeUpload = enableMulter();
 	enableApi(staticList, completeUpload);
-	lDebug(`API started on ${process.env.API_PORT}`);
 
 	if(process.env.API_WEBSOCKET) {
 		enableWebSocket(staticList);
-		lDebug(`Web socket started on ${process.env.API_PORT}`);
+		lDebug(`Web socket started on ${process.env.APP_PORT}`);
 	}
 
 	if(_express === null) {
-		app.listen(process.env.API_PORT);
+		app.listen(process.env.APP_PORT);
 	}
+	lDebug(`API dTorrent started on port : ${process.env.APP_PORT}`);
 };
 
 function enableMulter() {

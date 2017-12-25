@@ -11,6 +11,7 @@ const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
 let express = null, api_enabled = false;
+const staticTorrentList = new TorrentList();
 
 /**
  * Add config
@@ -20,7 +21,7 @@ module.exports.addConfig = (config) => {
 	const configs = [
 		'rtorrent_host', 'rtorrent_port', 'rtorrent_path',
 		'mongo_host', 'mongo_port',
-		'api_port', 'api_websocket'
+		'app_port', 'api_websocket'
 	];
 
 	for(const i in configs) {
@@ -33,9 +34,18 @@ module.exports.addConfig = (config) => {
 /**
  * @param app
  */
-module.exports.enableExpressApi = (app) => {
-	api_enabled = true;
-	express = app;
+module.exports.enableExpressApi = async(app) => {
+	try {
+		lDebug('Check connections');
+		await checkConnection();
+
+		api_enabled = true;
+		express = app;
+
+		api.enable(staticTorrentList, express);
+	} catch(e) {
+		lError(`Exception app ${e}`);
+	}
 };
 
 /**
@@ -49,14 +59,8 @@ module.exports.start = async(listener) => {
 		lDebug('Check connections');
 		await checkConnection();
 
-		const staticTorrentList = new TorrentList();
 		if(listener) {
 			staticTorrentList.addListener(listener);
-		}
-
-		if(api_enabled) {
-			lDebug('Launch API');
-			api.enable(staticTorrentList, express);
 		}
 
 		lDebug('Launch listener');
