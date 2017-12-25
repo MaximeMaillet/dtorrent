@@ -102,7 +102,6 @@ module.exports.post = (req, res, cpUpload) => {
 				.then((hash) => {
 					staticList.onEvent('torrent_added', {
 						'hash': hash,
-						'is_filled': false,
 						'is_finished': true
 					});
 					res.send('Torrent is uploaded');
@@ -118,15 +117,25 @@ module.exports.post = (req, res, cpUpload) => {
 		else if(req.files.file && req.body.tracker) {
 			createTorrentFromFile(req.files.file, req.body.tracker)
 				.then(({torrent, file}) => {
-					return checkTorrent(torrent, file)
-						.then((ok) => {
-						console.log(torrent);
-							console.log(ok);
-						})
-						.catch((e) => {
-							console.log(e);
-						});
+					return checkTorrent(torrent, file);
 				});
+		} else if(req.files.torrent && req.body.token) {
+			getTorrent(req.files.torrent[0].path)
+			.then((torrent) => {
+				return moveTorrent(req.files.torrent[0])
+					.then(() => {
+						return torrent;
+					});
+			})
+			.then((torrent) => {
+				staticList.onEvent('torrent_added', {
+					'hash': torrent.hash,
+					'is_finished': false
+				});
+				res.send('Torrent is added');
+			});
+		} else {
+			res.status(404).send({'msg': 'Missing files'});
 		}
 	});
 };
@@ -149,6 +158,18 @@ module.exports.delete = async(req, res) => {
 		res.status(500).send(e);
 	}
 };
+
+/**
+ * @param torrentFile
+ * @return {Promise.<TResult>|*}
+ */
+function getTorrent(torrentFile) {
+	const _ntRead = promisify(nt.read);
+	return _ntRead(torrentFile)
+		.then((torrent) => {
+			return torrent;
+		});
+}
 
 /**
  * Check hash
@@ -184,7 +205,7 @@ function checkTorrent(torrentFile, file) {
  * @param torrent
  */
 function moveTorrent(torrent) {
-	return move(torrent, `${process.env.STORAGE}/torrent/${torrent.originalname}`);
+	return move(torrent, `${process.env.STORAGE}/dtorrent/torrent/${torrent.originalname}`);
 }
 
 /**
@@ -247,9 +268,10 @@ function addTorrentAndFile(torrent, file) {
 /**
  * Add file
  * @param file
+ * @param tracker
  */
 function addFile(file, tracker) {
-	const torrent = createTorrentFromFile(files, tracker);
+	const torrent = createTorrentFromFile(file, tracker);
 	return addTorrentAndFile(torrent, file);
 }
 
