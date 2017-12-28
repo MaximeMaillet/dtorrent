@@ -13,10 +13,10 @@ Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorr
     * added
     * finished
     * in progress (downloading & uploading)
-    * active (play & resume)
+    * updated
     * remove
 * Docker for rtorrent deamon (with nginx & xml-rpc) https://gitlab.deuxmax.fr/torrent/rtorrent-deamon
-* Api
+* Manager
     * For add torrent + file data, add torrent file
     * For get details about one torrent
     * For get list of all torrents registered

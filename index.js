@@ -4,13 +4,11 @@ const debug = require('debug');
 const mongoose = require('mongoose');
 
 const TorrentList = require('./src/models/torrent-list');
-const api = require('./src/api/api');
 const launchListener = require('./src/listener/listener');
 
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
-let express = null, api_enabled = false;
 const staticTorrentList = new TorrentList();
 
 /**
@@ -32,40 +30,27 @@ module.exports.addConfig = (config) => {
 };
 
 /**
- * @param app
- */
-module.exports.enableExpressApi = async(app) => {
-	try {
-		lDebug('Check connections');
-		await checkConnection();
-
-		api_enabled = true;
-		express = app;
-
-		api.enable(staticTorrentList, express);
-	} catch(e) {
-		lError(`Exception app ${e}`);
-	}
-};
-
-/**
  * Start app
- * @param listener
  * @return {Promise.<void>}
  */
-module.exports.start = async(listener) => {
+module.exports.start = async(enableListener, callback) => {
 
 	try {
 		lDebug('Check connections');
 		await checkConnection();
 
-		if(listener) {
-			staticTorrentList.addListener(listener);
+		const manager = require('./src/manager')(staticTorrentList);
+
+		if(callback) {
+			staticTorrentList.addListener(callback);
 		}
 
-		lDebug('Launch listener');
-		launchListener.start(staticTorrentList);
+		if(enableListener) {
+			lDebug('Launch listener');
+			launchListener.start(staticTorrentList);
+		}
 
+		return manager;
 	} catch(e) {
 		lError(`Exception app ${e}`);
 	}
