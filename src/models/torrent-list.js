@@ -72,14 +72,18 @@ function TorrentList() {
 		switch(event) {
 			case EVENT_TORRENT_ADDED:
 				lDebug(`Torrent added : ${torrent.hash}`);
-				let newTorrent = await this.get(torrent.hash);
-				newTorrent = Object.assign(newTorrent, {
-					playing: true,
-					is_finished: newTorrent.progress === 100,
-					is_removed: false,
-				});
-				(new Torrent(newTorrent)).save();
-				this.eventToListeners(EVENT_TORRENT_ADDED, newTorrent);
+				try {
+					let newTorrent = await this.get(torrent.hash);
+					newTorrent = Object.assign(newTorrent, {
+						playing: true,
+						is_finished: newTorrent.progress === 100,
+						is_removed: false,
+					});
+					(new Torrent(newTorrent)).save();
+					this.eventToListeners(EVENT_TORRENT_ADDED, newTorrent);
+				} catch(e) {
+					throw {message: 'waiting'};
+				}
 				break;
 			case EVENT_TORRENT_SETTED:
 				lDebug(`Torrent updated ${torrent.hash} (${changes})`);

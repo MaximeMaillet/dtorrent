@@ -1,6 +1,7 @@
 'use strict';
 
 const debug = require('debug');
+const parseTorrent = require('parse-torrent');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
@@ -110,23 +111,39 @@ module.exports.delete = async(hash) => {
 };
 
 /**
- * Create torrent from torrent file (for upload)
+ * Get content of torrent
  * @param torrentFile
- * @return {Promise.<*>}
+ * @return {Object}
  */
-module.exports.createFromTorrent = async(torrentFile) => {
-	const torrent = await getDataTorrentFromFile(torrentFile);
+module.exports.getTorrentContent = (torrentFile) => {
+	return getDataTorrentFromFile(torrentFile);
+};
+
+/**
+ * Create torrent from torrent file (for upload)
+ * @return {Promise.<*>}
+ * @param torrent
+ */
+module.exports.createFromTorrent = async(torrent) => {
 	try {
-		await move(torrentFile, `${process.env.STORAGE}/dtorrent/torrent/`);
+		if(!(await module.exports.isExists(torrent))) {
+			await move(torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${torrent.name}.torrent`);
 
-		staticList.onEvent('torrent_added', {
-			'hash': torrent.hash,
-			'is_finished': true
-		});
+			await staticList.onEvent('torrent_added', {
+				'hash': torrent.infoHash,
+				'is_finished': false
+			});
 
-		return torrent;
+			return {torrent, success: true};
+		}
+
+		return {torrent, success: false, message: 'exists'};
 	} catch(e) {
-		throw e;
+		if(e.message === 'waiting') {
+			return {torrent, success: false, message: 'waiting'};
+		} else {
+			throw {error: e, torrentFile: torrent.name};
+		}
 	}
 };
 
@@ -161,7 +178,7 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 			}
 
 			staticList.onEvent('torrent_added', {
-				'hash': torrent.hash,
+				'hash': torrent.infoHash(),
 				'is_finished': true
 			});
 
@@ -196,6 +213,15 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
 			throw e;
 		}
 	}
+};
+
+/**
+ * Check if torrent already exists
+ * @param torrent
+ * @return {Promise.<boolean>}
+ */
+module.exports.isExists = async(torrent) => {
+	return !!(await staticList.getFromDb(torrent.infoHash));
 };
 
 /**
@@ -236,7 +262,7 @@ function checkTorrentIntegrity(torrentFile, file) {
  */
 async function move(file, targetDirectory) {
 	const unLink = promisify(fs.unlink);
-	const inputStream = fs.createReadStream(file.path);
+	const inputStream = fs.createReadStream(file);
 	const outputStream = fs.createWriteStream(targetDirectory);
 
 	inputStream.pipe(outputStream);
@@ -244,7 +270,7 @@ async function move(file, targetDirectory) {
 			if(err) {
 				throw err;
 			} else {
-				unLink(file.path);
+				unLink(file);
 				return true;
 			}
 		});
@@ -253,9 +279,16 @@ async function move(file, targetDirectory) {
 /**
  * Read torrent content then return result
  * @param torrentFile
- * @return {Promise.<*>}
+ * @return {Object}
  */
-async function getDataTorrentFromFile(torrentFile) {
-	const _ntRead = promisify(nt.read);
-	return _ntRead(torrentFile);
+function getDataTorrentFromFile(torrentFile) {
+	const torrent = parseTorrent(fs.readFileSync(torrentFile));
+	let l = 0;
+	for(const j in torrent.info.files) {
+		l += torrent.info.files[j].length;
+	}
+	torrent.info.total_size = l;
+	torrent.info.destination = torrentFile;
+	torrent.infoHash = torrent.infoHash.toUpperCase();
+	return torrent;
 }
