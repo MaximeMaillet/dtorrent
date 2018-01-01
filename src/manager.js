@@ -189,29 +189,39 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 
 /**
  * Add torrent file + data file
- * @param torrentFile
+ * @param torrent
  * @param dataFile
- * @return {Promise.<void>}
+ * @return {Promise.<*>}
  */
-module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
+module.exports.createFromTorrentAndData = async(torrent, dataFile) => {
 
-	const torrent = await getDataTorrentFromFile(torrentFile);
-	const {success, hash} = await checkTorrentIntegrity(torrentFile, dataFile);
+	const {success, hash} = await checkTorrentIntegrity(torrent.info.destination, dataFile);
 
 	if(success) {
 		try {
-			await move(dataFile, `${process.env.STORAGE}/downloaded/${torrent.name}`);
-			await move(torrentFile, `${process.env.STORAGE}/dtorrent/torrent/${torrent.name}`);
+			if(!(await module.exports.isExists(torrent))) {
+				await move(dataFile.path, `${process.env.STORAGE}/dtorrent/downloaded/${torrent.name}`);
+				await move(torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${torrent.name}.torrent`);
 
-			staticList.onEvent('torrent_added', {
-				'hash': hash,
-				'is_finished': true
-			});
+				await staticList.onEvent('torrent_added', {
+					'hash': torrent.infoHash,
+					'is_finished': true,
+					'progress': 100,
+				});
 
-			return torrent;
+				return {torrent: Object.assign(torrent, {is_finished: true, progress: 100}), success: true};
+			} else {
+				return {torrent: Object.assign(torrent, {is_finished: true, progress: 100}), success: false, message: 'exists'};
+			}
 		} catch(e) {
-			throw e;
+			if(e.message === 'waiting') {
+				return {torrent, success: false, message: 'waiting'};
+			} else {
+				throw {error: e, torrentFile: torrent.name};
+			}
 		}
+	} else {
+		throw new Error('files failed');
 	}
 };
 

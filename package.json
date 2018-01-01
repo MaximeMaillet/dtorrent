@@ -1,10 +1,10 @@
 {
   "name": "dtorrent",
-  "version": "0.0.12",
+  "version": "0.0.2",
   "description": "Listener for rTorrent",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MaximeMaillet/dTorrent"
+    "url": "https://gitlab.deuxmax.fr/torrent/dtorrent"
   },
   "main": "index.js",
   "scripts": {
