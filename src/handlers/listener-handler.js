@@ -1,6 +1,7 @@
 'use strict';
 
 const listeners = [];
+const webhooks = [];
 
 module.exports.EVENT = {
 	ADDED: 'torrent_added',
@@ -19,6 +20,18 @@ module.exports.remove = (listener) => {
 	listeners.splice(listeners.indexOf(listener), 1);
 };
 
+module.exports.addWebhook = (url) => {
+	if(webhooks.indexOf(url) === -1) {
+		webhooks.push(url);
+	}
+};
+
+module.exports.removeWebhook = (url) => {
+	if(webhooks.indexOf(url) !== -1) {
+		webhooks.splice(webhooks.indexOf(url), 1);
+	}
+};
+
 /**
  * @param event
  * @param torrent : Torrent
@@ -29,6 +42,7 @@ module.exports.on = (event, torrent, extra) => {
 		switch(event) {
 			case module.exports.EVENT.ADDED:
 				listeners[i].onAdded(torrent.toString());
+				sendWebHook(event, torrent.toString());
 				break;
 			case module.exports.EVENT.REMOVED:
 				listeners[i].onRemoved(torrent.toString());
@@ -41,10 +55,16 @@ module.exports.on = (event, torrent, extra) => {
 				break;
 			case module.exports.EVENT.RESUMED:
 				listeners[i].onResumed(torrent.toString());
+				sendWebHook(event, torrent.toString());
 				break;
 			case module.exports.EVENT.FINISHED:
 				listeners[i].onFinished(torrent.toString());
+				sendWebHook(event, torrent.toString());
 				break;
 		}
 	}
 };
+
+function sendWebHook(event, torrent) {
+
+}
