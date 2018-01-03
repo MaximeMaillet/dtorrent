@@ -31,9 +31,9 @@ module.exports.update = async(_torrent) => {
 	_torrent.merge((await clientTorrent.getTorrent(_torrent.hash)));
 	const torrent = module.exports.getTorrent(_torrent);
 	const diff = torrent.getDiff(_torrent);
-	lDebug(`Torrent updated : ${_torrent.hash} : ${diff.join(',')}`);
 
 	if(diff.length > 0) {
+		lDebug(`Torrent updated : ${_torrent.hash} : ${diff.join(',')}`);
 		torrent.update(_torrent, diff);
 		listenerHandler.on(listenerHandler.EVENT.UPDATED, torrent, diff);
 

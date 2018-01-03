@@ -31,10 +31,11 @@ Torrent.prototype.merge = function(_torrent) {
 };
 
 Torrent.prototype.getDiff = function(_torrent) {
+	const ignoreFields = ['extra', 'finished'];
 	const diff = [];
 	const keys = Object.keys(this.model);
 	for(const i in keys) {
-		if(keys[i] !== 'extra' && this[keys[i]] !== _torrent[keys[i]]) {
+		if(ignoreFields.indexOf(keys[i]) === -1 && this[keys[i]] !== _torrent[keys[i]]) {
 			diff.push(keys[i]);
 		}
 	}
