@@ -43,16 +43,16 @@ module.exports.getTorrent = async(hash) => {
 	return {
 		hash: hash,
 		name: name,
-		progress: Math.round((completedByte*100) / sizeBytes),
-		down_rate: Number(downRate),
-		mb_downloaded: Number(completedByte),
-		mb_uploaded: Number(upTotal),
-		mb_total: Number(sizeBytes),
-		is_active: isActive === '1',
+		active: isActive === '1',
+		downloaded: Number(completedByte),
+		uploaded: Number(upTotal),
+		size: Number(sizeBytes),
 		ratio: ratio/1000,
-		nb_seeders: Number(nbSeeders),
-		nb_leechers: Number(nbLeechers),
-		is_finished: Math.round((completedByte*100) / sizeBytes) === 100
+		extra: {
+			down_rate: Number(downRate),
+			nb_seeders: Number(nbSeeders),
+			nb_leechers: Number(nbLeechers),
+		},
 	};
 };
 
@@ -64,7 +64,7 @@ module.exports.resume = async(hash) => {
 	return methodCall('d.resume', [hash]);
 };
 
-module.exports.erase = async(hash) => {
+module.exports.delete = async(hash) => {
 	return methodCall('d.erase', [hash]);
 };
 

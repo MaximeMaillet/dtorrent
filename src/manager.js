@@ -5,26 +5,28 @@ const parseTorrent = require('parse-torrent');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
+const Torrent = require('./models/torrent');
 
-const lDebug = debug('dTorrent:api:controllers:debug');
-let staticList = null;
+const lDebug = debug('dTorrent:manager:debug');
+let listenerHandler, torrentHandler = null;
 
 /**
  * Init manager
  * @param _staticList
  */
-module.exports = (_staticList) => {
+module.exports = ({listenerHandler: _listenerHandler, torrentHandler: _torrentHandler}) => {
 	lDebug('Initialize manager');
-	staticList = _staticList;
+	listenerHandler = _listenerHandler;
+	torrentHandler = _torrentHandler;
 	return module.exports;
 };
 
 module.exports.addListener = (callback) => {
-	staticList.addListener(callback);
+	listenerHandler.add(callback);
 };
 
 module.exports.removeListener = (callback) => {
-	staticList.removeListener(callback);
+	listenerHandler.remove(callback);
 };
 
 /**
@@ -33,7 +35,7 @@ module.exports.removeListener = (callback) => {
  */
 module.exports.getAll = async() => {
 	try {
-		return (await staticList.getList());
+		return (await torrentHandler.getList());
 	} catch(e) {
 		throw e;
 	}
@@ -50,7 +52,8 @@ module.exports.getOne = async(hash) => {
 	}
 
 	try {
-		return (await staticList.getTorrent(hash));
+		const torrent = new Torrent(hash);
+		return (await torrentHandler.getTorrent(torrent).toString());
 	} catch(e) {
 		throw e;
 	}
@@ -67,8 +70,8 @@ module.exports.pause = async(hash) => {
 	}
 
 	try {
-		await staticList.pause(hash);
-		return true;
+		const torrent = new Torrent(hash);
+		return (await torrentHandler.pause(torrent)).toString();
 	} catch(e) {
 		throw e;
 	}
@@ -85,8 +88,8 @@ module.exports.resume = async(hash) => {
 	}
 
 	try {
-		await staticList.resume(hash);
-		return true;
+		const torrent = new Torrent(hash);
+		return (await torrentHandler.resume(torrent)).toString();
 	} catch(e) {
 		throw e;
 	}
@@ -103,51 +106,90 @@ module.exports.delete = async(hash) => {
 	}
 
 	try {
-		await staticList.erase(hash);
-		return true;
+		const torrent = new Torrent(hash);
+		return (await torrentHandler.delete(torrent)).toString();
 	} catch(e) {
 		throw e;
 	}
 };
 
 /**
- * Get content of torrent
- * @param torrentFile
- * @return {Object}
- */
-module.exports.getTorrentContent = (torrentFile) => {
-	return getDataTorrentFromFile(torrentFile);
-};
-
-/**
  * Create torrent from torrent file (for upload)
  * @return {Promise.<*>}
- * @param torrent
+ * @param torrentFile
  */
-module.exports.createFromTorrent = async(torrent) => {
+module.exports.createFromTorrent = async(torrentFile) => {
 	try {
-		if(!(await module.exports.isExists(torrent))) {
-			await move(torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${torrent.name}.torrent`);
+		const _torrent = getDataTorrentFromFile(torrentFile);
+		const torrent = new Torrent(_torrent.infoHash);
 
-			await staticList.onEvent('torrent_added', {
-				'hash': torrent.infoHash,
-				'is_finished': false
-			});
+		if(!torrentHandler.isExist(torrent)) {
+			await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
 
-			return {torrent, success: true};
-		}
-
-		return {torrent, success: false, message: 'exists'};
-	} catch(e) {
-		if(e.message === 'waiting') {
-			return {torrent, success: false, message: 'waiting'};
+			return {
+				success: true,
+				torrent: torrent.toString()
+			};
 		} else {
-			throw {error: e, torrentFile: torrent.name};
+			return {
+				success: false,
+				name: 'AlreadyExists',
+				message: 'Torrent already exists',
+				torrent: torrent.toString()
+			};
 		}
+	} catch(e) {
+		throw {
+			error: e,
+			torrentFile: torrentFile
+		};
+	}
+};
+/**
+ * Add torrent file + data file
+ * @param torrentFile
+ * @param dataFile
+ * @return {Promise.<*>}
+ */
+module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
+
+	const success = await checkTorrentIntegrity(torrentFile, dataFile);
+
+	if(success) {
+		try {
+			const _torrent = getDataTorrentFromFile(torrentFile);
+			const torrent = new Torrent(_torrent.infoHash);
+
+			if(!torrentHandler.isExist(torrent)) {
+				await move(dataFile, `${process.env.STORAGE}/dtorrent/downloaded/${_torrent.name}`);
+				await move(torrentFile, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
+
+				return {
+					success: true,
+					torrent: torrent.toString()
+				};
+			} else {
+				return {
+					success: false,
+					name: 'AlreadyExists',
+					message: 'Torrent already exists',
+					torrent: torrent.toString()
+				};
+			}
+		} catch(e) {
+			throw {
+				error: e,
+				torrentFile: torrentFile
+			};
+		}
+	} else {
+		throw new Error('files failed');
 	}
 };
 
+
 /**
+ * TODO : To test
  * @param dataFiles
  * @param tracker
  * @param torrentName
@@ -177,62 +219,12 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 				throw err;
 			}
 
-			staticList.onEvent('torrent_added', {
-				'hash': torrent.infoHash(),
-				'is_finished': true
-			});
-
 			return torrent;
 		}
 	);
 };
 
-/**
- * Add torrent file + data file
- * @param torrent
- * @param dataFile
- * @return {Promise.<*>}
- */
-module.exports.createFromTorrentAndData = async(torrent, dataFile) => {
 
-	const {success, hash} = await checkTorrentIntegrity(torrent.info.destination, dataFile);
-
-	if(success) {
-		try {
-			if(!(await module.exports.isExists(torrent))) {
-				await move(dataFile.path, `${process.env.STORAGE}/dtorrent/downloaded/${torrent.name}`);
-				await move(torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${torrent.name}.torrent`);
-
-				await staticList.onEvent('torrent_added', {
-					'hash': torrent.infoHash,
-					'is_finished': true,
-					'progress': 100,
-				});
-
-				return {torrent: Object.assign(torrent, {is_finished: true, progress: 100}), success: true};
-			} else {
-				return {torrent: Object.assign(torrent, {is_finished: true, progress: 100}), success: false, message: 'exists'};
-			}
-		} catch(e) {
-			if(e.message === 'waiting') {
-				return {torrent, success: false, message: 'waiting'};
-			} else {
-				throw {error: e, torrentFile: torrent.name};
-			}
-		}
-	} else {
-		throw new Error('files failed');
-	}
-};
-
-/**
- * Check if torrent already exists
- * @param torrent
- * @return {Promise.<boolean>}
- */
-module.exports.isExists = async(torrent) => {
-	return !!(await staticList.getFromDb(torrent.infoHash));
-};
 
 /**
  * Check integrity between torrent and data

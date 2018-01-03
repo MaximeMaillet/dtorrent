@@ -1,94 +1,55 @@
 require('dotenv').config();
+'use strict';
 
 const debug = require('debug');
-const mongoose = require('mongoose');
-
-const TorrentList = require('./src/models/torrent-list');
-const launchListener = require('./src/listener/listener');
+const workerList = require('./src/workers/list');
+const torrentHandler = require('./src/handlers/torrent-handler');
+const listenerHandler = require('./src/handlers/listener-handler');
 
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
-const staticTorrentList = new TorrentList();
-
-/**
- * Add config
- * @param config
- */
-module.exports.addConfig = (config) => {
-	const configs = [
-		'rtorrent_host', 'rtorrent_port', 'rtorrent_path',
-		'mongo_host', 'mongo_port',
-		'app_port', 'api_websocket'
-	];
-
-	for(const i in configs) {
-		if(configs[i]) {
-			process.env[configs[i].toUpperCase()] = config[configs[i]];
-		}
-	}
-};
-
 /**
  * Start app
+ * @param config
  * @return {Promise.<void>}
  */
-module.exports.start = async(enableListener, callback) => {
+module.exports.start = async(config) => {
 
 	try {
-		lDebug('Check connections');
-		await checkConnection();
-
-		const manager = require('./src/manager')(staticTorrentList);
-
-		if(callback) {
-			staticTorrentList.addListener(callback);
-		}
-
-		if(enableListener) {
-			lDebug('Launch listener');
-			launchListener.start(staticTorrentList);
-		}
-
-		return manager;
+		lDebug('Start app');
+		addConfig(config);
+		await workerList.start({listenerHandler, torrentHandler});
 	} catch(e) {
 		lError(`Exception app ${e}`);
 	}
 };
 
 /**
- * Check connection with external tools
- * @return {Promise.<void>}
+ * @return {Promise.<exports>}
  */
-async function checkConnection() {
-	try {
-		await initializeMongodb();
-		lDebug('Connections MongoDB OK');
-	} catch(e) {
-		lError(`Exception connections ${e}`);
-	}
-}
+module.exports.manager = async() => {
+	return require('./src/manager')({listenerHandler, torrentHandler});
+};
 
 /**
- * Init mongo connection
- * @return {Promise}
+ * Add config
+ * @param config
  */
-async function initializeMongodb() {
-	return new Promise((resolve, reject) => {
-		mongoose.connect(
-			`mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/torrent`,
-			{
-				useMongoClient: true
-			},
-			(err) => {
-				if(err) {
-					reject(err);
-				} else {
-					mongoose.Promise = require('bluebird');
-					resolve(true);
-				}
-			}
-		);
-	});
+function addConfig(config) {
+	lDebug('Check configuration');
+	const configs = [
+		{name: 'rtorrent_host', default: '127.0.0.1'},
+		{name: 'rtorrent_port', default: '8080'},
+		{name: 'rtorrent_path', default: '/RPC2'},
+		{name: 'interval_check', default: 1500}
+	];
 
+	for(const i in configs) {
+		if(config && config[configs[i].name]) {
+			process.env[configs[i].name.toUpperCase()] = config[configs[i]];
+		} else if(!process.env[configs[i].name.toUpperCase()]) {
+			process.env[configs[i].name.toUpperCase()] = configs[i].default;
+		}
+	}
 }

@@ -22,7 +22,6 @@
     }, {
       "enforceForRenamedProperties": false
     }],
-    "no-await-in-loop": [ "warn" ],
     "indent": [
       "off",
       2

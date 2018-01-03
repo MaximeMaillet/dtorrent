@@ -21,10 +21,15 @@ const EVENT_TORRENT_ACTIVED = 'torrent_active';
 const EVENT_TORRENT_ERASED = 'torrent_erased';
 
 /**
+ * @deprecated
  * @type {TorrentList}
  */
 module.exports = TorrentList;
 
+/**
+ * @deprecated
+ * @constructor
+ */
 function TorrentList() {
 	/**
 	 * @type {mongoose.Schema}

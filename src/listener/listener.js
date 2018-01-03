@@ -10,20 +10,6 @@ const lError = debug('dTorrent:listener:error');
  * @param staticList
  */
 module.exports.start = async(staticList) => {
-	try {
-		launchListWorker(staticList);
-	} catch(error) {
-		lError(`Exception : ${error}`);
-	}
-};
 
-/**
- * @return {Promise.<void>}
- */
-async function launchListWorker(staticList) {
-	workerList.start(staticList);
-	setInterval(() => {
-		workerList.start(staticList);
-	}, 1500);
-}
+};
 

@@ -1,35 +1,25 @@
 # dTorrent
 
-Listen your [`rtorrent`](https://github.com/rakshasa/rtorrent) client with dTorrent.
+Listen your favorite client bitTorrent.
 
-##### Todo
+#### Todo
 
-* Independant worker (garbage collector) for clean mongodb when files are manually erased. Optionally
 * Web hook on events
 
-##### Features
+#### Features
 
 * Receive event when torrent is :
     * added
-    * finished
-    * in progress (downloading & uploading)
     * updated
+    * finished
     * remove
-* Docker for rtorrent deamon (with nginx & xml-rpc) https://gitlab.deuxmax.fr/torrent/rtorrent-deamon
-* Manager
-    * For add torrent + file data, add torrent file
-    * For get details about one torrent
-    * For get list of all torrents registered
-    * For play & resume
-    * For soft delete
+* Manager for 
+    * add torrent + file data, add torrent file, add data (and create .torrent)
+    * get details about one torrent
+    * get list of all torrents
+    * play & resume
+    * delete
 * Web socket on events
-
-## Requirements
-
-* [nginx](#nginx)
-* [rtorrent](#rtorrent)
-* [mongodb](#mongodb)
-
 
 ## Install
 
@@ -42,44 +32,39 @@ npm install dtorrent --save
 Create index.js and write this :
 
 ```js
-var dtorrent = require('dtorrent');
+const dtorrent = require('dtorrent');
 
-var dConfig = {
+const dConfig = {
   rtorrent_host: '127.0.0.1', // IP of client torrent
   rtorrent_port: 8092, // Port of client torrent
   rtorrent_path: '/RPC2', // Path to join client torrent via XML RPC
-  mongo_host: '127.0.0.1', // host for mongodb
-  mongo_port: 27017, // port for mongodb
-  api_port: 8080, // port for API
-  api_websocket: true, // Enable web socket for handle events
+  interval_check: 1500, // Interval for checks
 };
 
-var dListener = {
-  onInsert: function(torrent) {
-    console.log("Event insert %s", torrent.hash);
-  },
-  onUploaded: function(torrent) {
-    console.log("event uploaded %s", torrent.hash);
-  },
-  onDownloaded: function(torrent) {
-    console.log("event download %s", torrent.hash);
-  },
-  onFinished: function(torrent) {
-    console.log("event on finished %s", torrent.hash)
-  }
-};
 
-// Optional, you cas use environment variable
-dtorrent.addConfig(dConfig);
-
-dtorrent.enableExpressApi()
-// Or
-const express = require('express');
-const app = express();
-dtorrent.enableExpressApi(app);
-
-// Start listener
-dtorrent.start(dConfig, dListener);
+await dtorrent.start(dConfig);
+const manager = await dtorrent.manager();
+manager.addListener({
+    onAdded: async(torrent) => {
+      console.log(`added : ${torrent.hash}`);
+    },
+    onRemoved: async(torrent) => {
+        console.log(`remove : ${torrent.hash}`);
+    },
+    onUpdated: async(torrent, diff) => {
+        console.log(`update : ${torrent.hash}`);
+        console.log(diff);
+    },
+    onPaused: async(torrent) => {
+        console.log(`pause : ${torrent.hash}`);
+    },
+    onResumed: async(torrent) => {
+        console.log(`resume : ${torrent.hash}`);
+    },
+    onFinished: async(torrent) => {
+        console.log(`finish : ${torrent.hash}`);
+    }
+});
 ```
 
 Or, for config :
@@ -88,34 +73,46 @@ Or, for config :
 RTORRENT_HOST=127.0.0.1
 RTORRENT_PORT=8092
 RTORRENT_PATH=/RPC2
-MONGO_HOST=127.0.0.1
-MONGO_PORT=27017
-API_PORT=8080
-API_WEBSOCKET=true
+INTERVAL_CHECK=1500
 ```
 
+## Manager methods
 
-## Endpoints API
+| Method | Parameters | OUT |
+| ---- | ---- | ---- |
+| getAll | hash | [{Torrent}, {...}] |
+| getOne | hash | {Torrent} |
+| resume | hash | {Torrent} |
+| pause  | hash | {Torrent} |
+| delete | hash | {Torrent} |
+| createFromTorrent | torrent_file_path | {success, torrent} |
+| createFromTorrentAndData | torrent_file_path, data_file_path | {success, torrent} |
 
-| Method | endpoint | IN | OUT |
-|---|---|---|---|
-| GET | /api/torrents | N/A | [{Torrent}, {...}] |
-| GET | /api/torrents/{hash} | N/A | {Torrent} |
-| POST | /api/torrents | {torrent: [[File]], file: [[File]]} | string |
-| PUT | /api/torrents/{hash}/pause | N/A | {success} |
-| PUT | /api/torrents/{hash}/resume | N/A | {success} |
-| DELETE | /api/torrents/{hash} | N/A | {success} |
 
+## Client compatibilities
 
-## Nginx
+### rTorrent
 
-#### Install
+[documentation](https://github.com/rakshasa/rtorrent)
+
+#### Requirements
+
+* [nginx](#nginx)
+* [rtorrent](#rtorrent)
+
+or 
+
+* [docker](https://gitlab.deuxmax.fr/torrent/rtorrent-deamon)
+
+#### Nginx
+
+###### Install
 
 ```bash
 sudo apt-get install nginx
 ```
 
-#### Configure Nginx
+###### Configure Nginx
 
 ```
 server {
@@ -129,22 +126,21 @@ server {
 }
 ```
 
-#### Start service
+###### Start service
 
 ```bash
 sudo service nginx start
 ```
 
+#### rTorrent
 
-## rTorrent
-
-#### Install
+###### Install
 
 ```bash
 sudo apt-get install rtorrent
 ```
 
-#### Create user for specific torrent
+###### Create user for specific torrent
 
 ```bash
 adduser torrent
@@ -160,7 +156,7 @@ mkdir -p /home/torrent/files
 mkdir -p /home/torrent/data
 ```
 
-#### Configure .rtorrent.rc
+###### Configure .rtorrent.rc
 
 https://doc.ubuntu-fr.org/rtorrent
 
@@ -189,20 +185,13 @@ encryption = allow_incoming,require,require_rc4
 scgi_port = localhost:5000
 ```
 
-#### Start rTorrent
+###### Start rTorrent
 
 ```bash
 rTorrent
 ```
 
 dtach for launch as deamon : https://doc.ubuntu-fr.org/rtorrent#rtorrent_en_daemon
-
-
-## Mongodb
-
-#### Install
-
-[Documentation](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-debian/)
 
 
 ## License
