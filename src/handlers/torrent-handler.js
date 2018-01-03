@@ -20,7 +20,7 @@ module.exports.addListenerHandler = (_listenerHandler) => {
 module.exports.add = async(torrent) => {
 	lDebug(`Torrent added ${torrent.hash}`);
 	torrent.merge((await clientTorrent.getTorrent(torrent.hash)));
-	torrents.push(checkDataTorrent(torrent));
+	torrents.push(torrent);
 	listenerHandler.on(listenerHandler.EVENT.ADDED, torrent);
 };
 
@@ -41,22 +41,8 @@ module.exports.update = async(_torrent) => {
 		if(diff.indexOf('downloaded') !== -1 && torrent.finished) {
 			listenerHandler.on(listenerHandler.EVENT.FINISHED, torrent);
 		}
-
-		checkDataTorrent(torrent);
 	}
 };
-
-/**
- * @param torrent
- * @return {*}
- */
-function checkDataTorrent(torrent) {
-	if(torrent.downloaded === torrent.size) {
-		torrent.finished = true;
-	}
-
-	return torrent;
-}
 
 /**
  * @param _torrent

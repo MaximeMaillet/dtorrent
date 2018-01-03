@@ -9,6 +9,7 @@ function Torrent(hash) {
 		active: false,
 		finished: false,
 		playing: false,
+		progress: 0,
 		downloaded: 0,
 		uploaded: 0,
 		size: 0,
@@ -28,6 +29,14 @@ Torrent.prototype.merge = function(_torrent) {
 			this[keys[i]] = _torrent[keys[i]];
 		}
 	}
+
+	if(this.downloaded === this.size) {
+		this.finished = true;
+	}
+
+	this.progress = Math.round((this.size*100) / this.downloaded);
+
+	return this;
 };
 
 Torrent.prototype.getDiff = function(_torrent) {

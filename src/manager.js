@@ -121,6 +121,15 @@ module.exports.delete = async(hash) => {
 };
 
 /**
+ * Extract data from torrent file
+ * @param torrentFile
+ * @return {Object}
+ */
+module.exports.extractTorrentFile = (torrentFile) => {
+	return getDataTorrentFromFile(torrentFile);
+};
+
+/**
  * Create torrent from torrent file (for upload)
  * @return {Promise.<*>}
  * @param torrentFile
