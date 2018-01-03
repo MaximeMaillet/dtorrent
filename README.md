@@ -4,22 +4,28 @@ Listen your favorite client bitTorrent.
 
 #### Todo
 
-* Web hook on events
+* Choose which event launch webhook
 
 #### Features
 
-* Receive event when torrent is :
-    * added
-    * updated
-    * finished
-    * remove
+* Listener on events :
+    * Torrent added
+    * Torrent updated
+    * Torrent finished
+    * Torrent removed
+    * Torrent paused & resumed
+* Web hook on :
+    * torrent added 
+    * torrent finished
+    * torrent removed
+    * torrent paused
+    * torrent resumed
 * Manager for 
     * add torrent + file data, add torrent file, add data (and create .torrent)
     * get details about one torrent
     * get list of all torrents
     * play & resume
     * delete
-* Web socket on events
 
 ## Install
 
@@ -44,6 +50,16 @@ const dConfig = {
 
 await dtorrent.start(dConfig);
 const manager = await dtorrent.manager();
+manager.addWebHook('https://deuxmax.fr:666/hook/torrent', {
+  onFailed: (Url, status, body, headers) => {
+    console.log(status);
+    console.log(body);
+    console.log(headers);
+  },
+  onError: (Url, err) => {
+    console.log(err);
+  }
+});
 manager.addListener({
     onAdded: async(torrent) => {
       console.log(`added : ${torrent.hash}`);

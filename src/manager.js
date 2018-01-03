@@ -29,6 +29,13 @@ module.exports.removeListener = (callback) => {
 	listenerHandler.remove(callback);
 };
 
+module.exports.addWebHook = (url, callback) => {
+	listenerHandler.addWebhook(url, callback);
+};
+
+module.exports.removeWebhHook = (url) => {
+	listenerHandler.removeWebhook(url);
+};
 /**
  * Get all torrent
  * @return {Promise.<*>}
