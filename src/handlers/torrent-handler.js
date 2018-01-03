@@ -4,6 +4,7 @@ const lDebug = debug('dTorrent:handler:torrent:debug');
 const lError = debug('dTorrent:handler:torrent:list:error');
 
 const clientTorrent = require('../clients/rTorrent');
+const Torrent = require('../models/torrent');
 
 const torrents = [];
 let listenerHandler = null;
@@ -95,6 +96,9 @@ module.exports.getList = () => {
  * @return {Promise.<*>}
  */
 module.exports.pause = async(_torrent) => {
+	if((typeof _torrent) === 'string') {
+		_torrent = new Torrent(_torrent);
+	}
 	const torrent = module.exports.getTorrent(_torrent);
 	if(torrent === null) {
 		throw new Error('Torrent does not exists');
@@ -118,6 +122,9 @@ module.exports.pause = async(_torrent) => {
  * @return {Promise.<*>}
  */
 module.exports.resume = async(_torrent) => {
+	if((typeof _torrent) === 'string') {
+		_torrent = new Torrent(_torrent);
+	}
 	const torrent = module.exports.getTorrent(_torrent);
 	if(torrent === null) {
 		throw new Error('Torrent does not exists');
@@ -139,6 +146,9 @@ module.exports.resume = async(_torrent) => {
  * @return {Promise.<boolean>}
  */
 module.exports.delete = async(_torrent) => {
+	if((typeof _torrent) === 'string') {
+		_torrent = new Torrent(_torrent);
+	}
 	const torrent = module.exports.getTorrent(_torrent);
 	if(torrent === null) {
 		throw new Error('Torrent does not exists');
