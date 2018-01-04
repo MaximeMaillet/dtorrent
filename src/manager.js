@@ -5,6 +5,8 @@ const parseTorrent = require('parse-torrent');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
+const path = require('path');
+const createTorrent = require('create-torrent');
 const Torrent = require('./models/torrent');
 
 const lDebug = debug('dTorrent:manager:debug');
@@ -180,6 +182,10 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
 				await move(dataFile, `${process.env.STORAGE}/dtorrent/downloaded/${_torrent.name}`);
 				await move(torrentFile, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
 
+				torrent.name = _torrent.name;
+				torrent.finished = true;
+				torrent.progress = 100;
+
 				return {
 					success: true,
 					torrent: torrent.toString()
@@ -217,30 +223,54 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 		throw new Error('You should upload at least one file');
 	}
 
+	if(dataFiles.length > 1) {
+		throw new Error('You cant add more than one file, for the moment.');
+	}
+
 	const names = dataFiles.map((file) => {
-		return file.name;
+		return file.filename;
 	});
 
 	if(!torrentName) {
-		torrentName = dataFiles[0].name;
+		torrentName = dataFiles[0].originalname;
 	}
 
-	nt.makeWrite(
-		`${torrentName}.torrent`,
-		tracker,
-		dataFiles.destination,
-		names,
-		(err, torrent) => {
-			if (err) {
-				throw err;
+	let torrent = null;
+
+	return new Promise((resolve, reject) => {
+		createTorrent(dataFiles[0].path, {
+			name: torrentName,
+			announceList: [tracker]
+	}, (err, _torrent) => {
+			if(err) {
+				reject(err);
+			} else {
+				fs.writeFileSync(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`, _torrent);
+				const t = module.exports.extractTorrentFile(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`);
+				torrent = new Torrent(t.infoHash);
+				torrent.name = t.name;
+				torrent.finished = true;
+				torrent.progress = 100;
+				torrent.size = t.info.length;
+				torrent.downloaded = t.info.length;
+				resolve(torrent);
 			}
-
-			return torrent;
-		}
-	);
+		});
+	})
+		.then(() => {
+			return move(dataFiles[0].path, `${process.env.STORAGE}/dtorrent/downloaded/${torrentName}`);
+		})
+		.then(() => {
+			return {
+				success: true,
+				torrent: torrent.toString(),
+			};
+		})
+		.catch((e) => {
+			// TODO move roll back
+			throw e;
+		});
 };
-
-
 
 /**
  * Check integrity between torrent and data
@@ -248,14 +278,13 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
  * @param file
  * @return {Promise.<TResult>|*}
  */
-function checkTorrentIntegrity(torrentFile, file) {
+function checkTorrentIntegrity(torrentFile, dataFile) {
 	const _ntRead = promisify(nt.read);
 	return _ntRead(torrentFile)
 		.then((torrent) => {
 			return new Promise((resolve, reject) => {
-				torrent.metadata.info.name = file.filename;
-
-				const hasher = torrent.hashCheck(file.destination);
+				torrent.metadata.info.name = path.basename(dataFile);
+				const hasher = torrent.hashCheck(path.dirname(dataFile));
 				let percentMatch = 0;
 
 				hasher.on('match', (i, hash, percent) => {

@@ -1,3 +1,4 @@
+require('dotenv').config();
 'use strict';
 
 module.exports = Torrent;
@@ -5,7 +6,7 @@ module.exports = Torrent;
 function Torrent(hash) {
 	this.model = {
 		hash: hash,
-		name: 'N/A',
+		name: null,
 		active: false,
 		finished: false,
 		playing: false,
@@ -15,6 +16,7 @@ function Torrent(hash) {
 		size: 0,
 		ratio: 0,
 		extra: {},
+		file_path: '',
 	};
 	const keys = Object.keys(this.model);
 	for(const i in keys) {
@@ -34,7 +36,8 @@ Torrent.prototype.merge = function(_torrent) {
 		this.finished = true;
 	}
 
-	this.progress = Math.round((this.size*100) / this.downloaded);
+	this.progress = Math.round((this.downloaded*100) / this.size);
+	this.file_path = `${process.env.STORAGE}/dtorrent/torrent/${this.name}.torrent`;
 
 	return this;
 };
@@ -56,7 +59,7 @@ Torrent.prototype.update = function(_torrent, diff) {
 
 		if(diff[i] === 'downloaded') {
 			this.playing = true;
-			this.progress = Math.round((_torrent.size*100) / _torrent.downloaded);
+			this.progress = Math.round((_torrent.downloaded*100) / _torrent.size);
 			if(this.progress === 100) {
 				this.finished = true;
 			}
