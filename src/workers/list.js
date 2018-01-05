@@ -15,14 +15,14 @@ const lError = debug('dTorrent:worker:list:error');
  * @param listenerHandler
  * @param torrentHandler
  */
-module.exports.start = async({listenerHandler, torrentHandler}) => {
+module.exports.start = async({listenerHandler, torrentHandler}, config) => {
 	lDebug('Start worker list ');
 	torrentHandler.addListenerHandler(listenerHandler);
 	list({listenerHandler, torrentHandler});
 
 	setInterval(() => {
 		list({listenerHandler, torrentHandler});
-	}, process.env.INTERVAL_CHECK);
+	}, config.interval_check);
 };
 
 /**

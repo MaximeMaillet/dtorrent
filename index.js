@@ -9,17 +9,20 @@ const listenerHandler = require('./src/handlers/listener-handler');
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
+let pid = 0;
+
 /**
  * Start app
  * @param config
  * @return {Promise.<void>}
  */
-module.exports.start = async(config) => {
+module.exports.start = async(config, listener) => {
 
 	try {
 		lDebug('Start app');
-		addConfig(config);
-		await workerList.start({listenerHandler, torrentHandler});
+		pid++;
+		config = addConfig(config);
+		await workerList.start({listenerHandler, torrentHandler}, config);
 	} catch(e) {
 		lError(`Exception app ${e}`);
 	}
@@ -38,18 +41,35 @@ module.exports.manager = async() => {
  */
 function addConfig(config) {
 	lDebug('Check configuration');
-	const configs = [
+
+	if(!config) {
+		config = {};
+	}
+
+	const envs = [
 		{name: 'rtorrent_host', default: '127.0.0.1'},
 		{name: 'rtorrent_port', default: '8080'},
-		{name: 'rtorrent_path', default: '/RPC2'},
-		{name: 'interval_check', default: 1500}
+		{name: 'rtorrent_path', default: '/RPC2'}
+	];
+	for(const i in envs) {
+		if(config && config[envs[i].name]) {
+			process.env[envs[i].name.toUpperCase()] = config[envs[i].name];
+		} else if(!process.env[envs[i].name.toUpperCase()]) {
+			process.env[envs[i].name.toUpperCase()] = envs[i].default;
+		}
+	}
+
+	const configs = [
+		{name: 'interval_check', default: 1500},
 	];
 
 	for(const i in configs) {
 		if(config && config[configs[i].name]) {
-			process.env[configs[i].name.toUpperCase()] = config[configs[i]];
-		} else if(!process.env[configs[i].name.toUpperCase()]) {
-			process.env[configs[i].name.toUpperCase()] = configs[i].default;
+			config[configs[i].name] = config[configs[i].name];
+		} else {
+			config[configs[i].name] = configs[i].default;
 		}
 	}
+
+	return config;
 }

@@ -5,6 +5,10 @@ Listen your favorite client bitTorrent.
 #### Todo
 
 * Choose which event launch webhook
+* Return torrent data when add torrent file
+* Multi worker
+    * specific config
+    * specific listener for worker
 
 #### Features
 
