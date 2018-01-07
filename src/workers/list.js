@@ -42,6 +42,8 @@ async function list({listenerHandler, torrentHandler}) {
 				await torrentHandler.add(trnt);
 			}
 		}
+
+		torrentHandler.checkState(list);
 	} catch (error) {
 		console.log(error);
 		lError(`Exception ${error}`);

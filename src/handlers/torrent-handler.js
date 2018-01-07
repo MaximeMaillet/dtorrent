@@ -142,10 +142,27 @@ module.exports.delete = async(_torrent) => {
 
 	try {
 		const result = await clientTorrent.delete(torrent.hash);
-		lDebug(`DELETE : ${result}`);
+		torrents.splice(torrents.indexOf(torrent), 1);
+		lDebug(`Torrent removed ${torrent.hash}`);
 		listenerHandler.on(listenerHandler.EVENT.REMOVED, torrent);
 		return true;
 	} catch(e) {
 		throw e;
+	}
+};
+
+/**
+ * Check state torrent, diff with static list and client torrent
+ * @param list
+ * @return {Promise.<void>}
+ */
+module.exports.checkState = async(list) => {
+	for(const i in torrents) {
+		const index = list.indexOf(torrents[i].hash);
+		if(index === -1) {
+			lDebug(`Torrent removed ${torrents[i].hash}`);
+			listenerHandler.on(listenerHandler.EVENT.REMOVED, torrents[i]);
+			torrents.splice(i, 1);
+		}
 	}
 };

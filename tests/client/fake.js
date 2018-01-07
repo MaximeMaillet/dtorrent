@@ -1,18 +1,20 @@
 'use strict';
 
-const Torrent = require('../../src/models/torrent');
-
 const list = [];
+let ID = 1;
 
-hydrate();
+setTimeout(() => {
+	hydrate();
+}, 3000);
 
 module.exports.list = async(details) => {
-	const _list = list.map((value) => {
-		if(value.extra.removed === false) {
+	return list
+		.filter((value) => {
+			return value.extra.removed === false;
+		})
+		.map((value) => {
 			return value.hash;
-		}
-	});
-	return _list;
+		});
 };
 
 module.exports.getTorrent = async(hash) => {
@@ -77,6 +79,10 @@ function hydrate() {
 	setInterval(() => {
 		updateTorrent();
 	}, 500);
+
+	setInterval(() => {
+		removeTorrent();
+	}, 9000);
 }
 
 function updateTorrent() {
@@ -96,11 +102,20 @@ function updateTorrent() {
 	}
 }
 
+function removeTorrent() {
+	for(const i in list) {
+		if(list[i].extra.removed === false) {
+			list[i].extra.removed = true;
+			break;
+		}
+	}
+}
+
 function createFakeTorrent() {
-	const ID = Math.floor((Math.random() * 1000) + 1);
+	const _id = ID++;
 	return {
-		hash: `F4K3H45H${ID}`,
-		name: `TORRENT_NAME_${ID}`,
+		hash: `F4K3H45H${_id}`,
+		name: `TORRENT_NAME_${_id}`,
 		active: true,
 		downloaded: 0,
 		uploaded: 0,
