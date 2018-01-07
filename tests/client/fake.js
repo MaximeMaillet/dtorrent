@@ -74,7 +74,7 @@ function hydrate() {
 
 	setInterval(() => {
 		list.push(createFakeTorrent());
-	}, 30000);
+	}, 15000);
 
 	setInterval(() => {
 		updateTorrent();
