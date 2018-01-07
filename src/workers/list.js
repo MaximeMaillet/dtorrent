@@ -19,10 +19,10 @@ const lError = debug('dTorrent:worker:list:error');
 module.exports.start = async({listenerHandler, torrentHandler}, config) => {
 	lDebug('Start worker list ');
 	torrentHandler.addListenerHandler(listenerHandler);
-	list({listenerHandler, torrentHandler});
+	list(torrentHandler);
 
 	setInterval(() => {
-		list({listenerHandler, torrentHandler});
+		list(torrentHandler);
 	}, config.interval_check);
 };
 
@@ -30,7 +30,7 @@ module.exports.start = async({listenerHandler, torrentHandler}, config) => {
  * List all torrents
  * @return {Promise.<void>}
  */
-async function list({listenerHandler, torrentHandler}) {
+async function list(torrentHandler) {
 	try {
 		const list = await clientTorrent.list();
 		for(const i in list) {
