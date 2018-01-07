@@ -5,11 +5,16 @@ const debug = require('debug');
 const workerList = require('./src/workers/list');
 const torrentHandler = require('./src/handlers/torrent-handler');
 const listenerHandler = require('./src/handlers/listener-handler');
+const client = require('./src/clients/client');
 
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
 let pid = 0;
+
+module.exports.joinClient = (_client) => {
+	client.assign(_client);
+};
 
 /**
  * Start app
@@ -19,9 +24,11 @@ let pid = 0;
 module.exports.start = async(config, listener) => {
 
 	try {
-		lDebug('Start app');
 		pid++;
 		config = addConfig(config);
+		module.exports.joinClient(config.client);
+
+		lDebug('Start app');
 		await workerList.start({listenerHandler, torrentHandler}, config);
 	} catch(e) {
 		lError(`Exception app ${e}`);
@@ -33,6 +40,11 @@ module.exports.start = async(config, listener) => {
  */
 module.exports.manager = async() => {
 	return require('./src/manager')({listenerHandler, torrentHandler});
+};
+
+module.exports.fake = async() => {
+	const fake = require('./tests/fake');
+	fake.start(listenerHandler);
 };
 
 /**
@@ -61,6 +73,7 @@ function addConfig(config) {
 
 	const configs = [
 		{name: 'interval_check', default: 1500},
+		{name: 'client', default: require('./src/clients/rTorrent')}
 	];
 
 	for(const i in configs) {

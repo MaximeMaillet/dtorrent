@@ -3,7 +3,7 @@ const debug = require('debug');
 const lDebug = debug('dTorrent:handler:torrent:debug');
 const lError = debug('dTorrent:handler:torrent:list:error');
 
-const clientTorrent = require('../clients/rTorrent');
+const clientTorrent = require('../clients/client');
 const Torrent = require('../models/torrent');
 
 const torrents = [];

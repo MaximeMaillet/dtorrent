@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const debug = require('debug');
 
-const clientTorrent = require('../clients/rTorrent');
+const clientTorrent = require('../clients/client');
 const Torrent = require('../models/torrent');
 
 const lDebug = debug('dTorrent:worker:list:debug');

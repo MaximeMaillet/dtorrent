@@ -2,7 +2,6 @@
 
 const hh = require('http-https');
 const url = require('url');
-const querystring = require('querystring');
 
 const listeners = [];
 const webhooks = [];

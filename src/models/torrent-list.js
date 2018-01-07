@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const debug = require('debug');
-const clientTorrent = require('../listener/clients/rTorrent');
+const clientTorrent = require('../listener/clients/client');
 const mongoose = require('mongoose');
 
 const lError = debug('dTorrent:listener:model:error');
