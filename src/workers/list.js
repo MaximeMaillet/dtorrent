@@ -14,6 +14,7 @@ const lError = debug('dTorrent:worker:list:error');
  * @returns {Promise}
  * @param listenerHandler
  * @param torrentHandler
+ * @param config
  */
 module.exports.start = async({listenerHandler, torrentHandler}, config) => {
 	lDebug('Start worker list ');

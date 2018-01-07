@@ -21,8 +21,7 @@ module.exports.joinClient = (_client) => {
  * @param config
  * @return {Promise.<void>}
  */
-module.exports.start = async(config, listener) => {
-
+module.exports.start = async(config) => {
 	try {
 		pid++;
 		config = addConfig(config);
@@ -42,9 +41,22 @@ module.exports.manager = async() => {
 	return require('./src/manager')({listenerHandler, torrentHandler});
 };
 
-module.exports.fake = async() => {
-	const fake = require('./tests/fake');
-	fake.start(listenerHandler);
+/**
+ * Launch fake torrent listener
+ * @param config
+ * @return {Promise.<void>}
+ */
+module.exports.fake = async(config) => {
+	try {
+		pid++;
+		config = addConfig(config);
+		module.exports.joinClient(require('./tests/client/fake'));
+
+		lDebug('Start app');
+		await workerList.start({listenerHandler, torrentHandler}, config);
+	} catch(e) {
+		lError(`Exception app ${e}`);
+	}
 };
 
 /**
