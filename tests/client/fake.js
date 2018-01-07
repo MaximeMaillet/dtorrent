@@ -91,8 +91,8 @@ function updateTorrent() {
 			torrent.downloaded = torrent.size;
 		}
 
-		torrent.uploaded = Math.floor(Math.random() * 10) * 1024;
-		torrent.ratio = torrent.uploaded / torrent.downloaded;
+		torrent.uploaded += Math.floor(Math.random() * 100) * 1024;
+		torrent.ratio = Math.round((torrent.uploaded / torrent.downloaded)*100) / 1000;
 	}
 }
 
