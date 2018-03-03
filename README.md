@@ -2,6 +2,8 @@
 
 Listen your favorite client bitTorrent.
 
+dTorrent launch, every interval, request for check all torrents and compare with actual state for return changes.
+
 #### Features
 
 * Listener on events :
@@ -43,19 +45,36 @@ const dConfig = {
   interval_check: 1500, // Interval for checks
 };
 
-
+// Star dtorrent
 await dtorrent.start(dConfig);
+```
+
+Or, for config :
+
+```.env
+RTORRENT_HOST=127.0.0.1
+RTORRENT_PORT=8092
+RTORRENT_PATH=/RPC2
+INTERVAL_CHECK=1500
+```
+
+## Manager
+
+| Method | Parameters | OUT |
+| ---- | ---- | ---- |
+| getAll | hash | [{Torrent}, {...}] |
+| getOne | hash | {Torrent} |
+| resume | hash | {Torrent} |
+| pause  | hash | {Torrent} |
+| delete | hash | {Torrent} |
+| createFromTorrent | torrent_file_path | {success, torrent} |
+| createFromTorrentAndData | torrent_file_path, data_file_path | {success, torrent} |
+
+
+```javascript
+const dtorrent = require('dtorrent');
+await dtorrent.start();
 const manager = await dtorrent.manager();
-manager.addWebHook('https://deuxmax.fr:666/hook/torrent', {
-  onFailed: (Url, status, body, headers) => {
-    console.log(status);
-    console.log(body);
-    console.log(headers);
-  },
-  onError: (Url, err) => {
-    console.log(err);
-  }
-});
 manager.addListener({
     onAdded: async(torrent) => {
       console.log(`added : ${torrent.hash}`);
@@ -78,43 +97,30 @@ manager.addListener({
     }
 });
 ```
+## Webhooks
 
-Or, for config :
-
-```.env
-RTORRENT_HOST=127.0.0.1
-RTORRENT_PORT=8092
-RTORRENT_PATH=/RPC2
-INTERVAL_CHECK=1500
+```javascript
+const dtorrent = require('dtorrent');
+await dtorrent.start();
+const manager = await dtorrent.manager();
+manager.addWebHook('https://monhook.com', {
+  onFailed: (Url, status, body, headers) => {
+    console.log(status);
+    console.log(body);
+    console.log(headers);
+  },
+  onError: (Url, err) => {
+    console.log(err);
+  }
+});
 ```
 
-## Manager methods
-
-| Method | Parameters | OUT |
-| ---- | ---- | ---- |
-| getAll | hash | [{Torrent}, {...}] |
-| getOne | hash | {Torrent} |
-| resume | hash | {Torrent} |
-| pause  | hash | {Torrent} |
-| delete | hash | {Torrent} |
-| createFromTorrent | torrent_file_path | {success, torrent} |
-| createFromTorrentAndData | torrent_file_path, data_file_path | {success, torrent} |
-
-
 ## Client compatibilities
-
-### rTorrent
-
-[documentation](https://github.com/rakshasa/rtorrent)
 
 #### Requirements
 
 * [nginx](#nginx)
 * [rtorrent](#rtorrent)
-
-or 
-
-* [docker](https://gitlab.deuxmax.fr/torrent/rtorrent-deamon)
 
 #### Nginx
 
@@ -145,6 +151,8 @@ sudo service nginx start
 ```
 
 #### rTorrent
+
+[documentation](https://github.com/rakshasa/rtorrent)
 
 ###### Install
 
@@ -205,6 +213,12 @@ rTorrent
 
 dtach for launch as deamon : https://doc.ubuntu-fr.org/rtorrent#rtorrent_en_daemon
 
+## Docker
+
+[Documentation](https://github.com/MaximeMaillet/rtorrent-daemon)
+
+
+[Example]() @TODO
 
 ## License
 
