@@ -140,6 +140,13 @@ module.exports.createFromTorrent = async(torrentFile) => {
 	try {
 		const _torrent = getDataTorrentFromFile(torrentFile);
 		const torrent = new Torrent(_torrent.infoHash);
+		torrent.merge({
+      name: _torrent.name,
+      size: _torrent.length,
+      extra: {
+        ..._torrent.info
+      },
+    });
 
 		if(!torrentHandler.isExist(torrent)) {
 			await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);

@@ -28,6 +28,7 @@ Torrent.prototype.merge = function(_torrent) {
 	const keys = Object.keys(this.model);
 	for(const i in keys) {
 		if(_torrent[keys[i]]) {
+			this.model[keys[i]] = _torrent[keys[i]];
 			this[keys[i]] = _torrent[keys[i]];
 		}
 	}
@@ -74,7 +75,7 @@ Torrent.prototype.update = function(_torrent, diff) {
 };
 
 Torrent.prototype.toString = function() {
-	const keys = Object.keys(this.model);
+  const keys = Object.keys(this.model);
 	const model = {};
 	for(const i in keys) {
 		model[keys[i]] = this[keys[i]];
