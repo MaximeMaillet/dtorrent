@@ -170,6 +170,7 @@ module.exports.createFromTorrent = async(torrentFile) => {
 		};
 	}
 };
+
 /**
  * Add torrent file + data file
  * @param torrentFile
@@ -178,7 +179,14 @@ module.exports.createFromTorrent = async(torrentFile) => {
  */
 module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
 
-	const success = await checkTorrentIntegrity(torrentFile, dataFile);
+  try {
+    const success = await checkTorrentIntegrity(torrentFile, dataFile);
+  } catch(e) {
+    throw {
+      message: 'Integrity torrent failed',
+      errors: e,
+    }
+  }
 
 	if(success) {
 		try {
@@ -282,30 +290,40 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 /**
  * Check integrity between torrent and data
  * @param torrentFile
- * @param file
+ * @param dataFile
  * @return {Promise.<TResult>|*}
  */
-function checkTorrentIntegrity(torrentFile, dataFile) {
+async function checkTorrentIntegrity(torrentFile, dataFile) {
 	const _ntRead = promisify(nt.read);
 	return _ntRead(torrentFile)
-		.then((torrent) => {
-			return new Promise((resolve, reject) => {
-				torrent.metadata.info.name = path.basename(dataFile);
-				const hasher = torrent.hashCheck(path.dirname(dataFile));
-				let percentMatch = 0;
+    .then((torrent) => {
+      return new Promise((resolve, reject) => {
+        torrent.metadata.info.name = path.basename(dataFile);
+        const hasher = torrent.hashCheck(path.dirname(dataFile));
 
-				hasher.on('match', (i, hash, percent) => {
-					percentMatch = percent;
-				});
+        let percentMatch = 0;
+        const errors = [];
 
-				hasher.on('end', () => {
-					resolve({
-						'success': percentMatch === 100,
-						'hash': torrent.infoHash()
-					});
-				});
-			});
-		});
+        hasher.on('match', (i, hash, percent) => {
+          percentMatch = percent;
+        });
+
+        hasher.on('error', (err) => {
+          errors.push(err.message);
+        });
+
+        hasher.on('end', () => {
+          if(errors.length > 0) {
+            reject(errors);
+          } else {
+            resolve({
+              'success': percentMatch === 100,
+              'hash': torrent.infoHash()
+            });
+          }
+        });
+      });
+    });
 }
 
 /**

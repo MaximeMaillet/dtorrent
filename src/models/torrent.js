@@ -1,7 +1,11 @@
 require('dotenv').config();
-'use strict';
+const path = require('path')
 
 module.exports = Torrent;
+
+const movieExtensions = [
+  '.avi', '.mp4', '.mkv'
+];
 
 function Torrent(hash) {
 	this.model = {
@@ -32,6 +36,9 @@ Torrent.prototype.merge = function(_torrent) {
 			this[keys[i]] = _torrent[keys[i]];
 		}
 	}
+
+	this.model.path = this.getPath(_torrent.extra.files);
+	this.path = this.getPath(_torrent.extra.files);
 
 	if(this.downloaded === this.size) {
 		this.finished = true;
@@ -76,9 +83,20 @@ Torrent.prototype.update = function(_torrent, diff) {
 
 Torrent.prototype.toString = function() {
   const keys = Object.keys(this.model);
+  console.log(this.model);
 	const model = {};
 	for(const i in keys) {
 		model[keys[i]] = this[keys[i]];
 	}
 	return model;
+};
+
+Torrent.prototype.getPath = function(buffer) {
+  for(const i in buffer) {
+    if(buffer[i].path[0].toString()) {
+      if(movieExtensions.indexOf(path.extname(buffer[i].path[0].toString())) !== -1) {
+        return `${process.env.STORAGE}/dtorrent/downloaded/${buffer[i].path[0].toString()}`;
+      }
+    }
+  }
 };
