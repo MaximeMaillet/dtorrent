@@ -63,10 +63,10 @@ module.exports.resume = async(pid, hash) => {
 module.exports.remove = async(pid, hash) => {
   const client = getClient(pid);
   if(client) {
-    if (client.delete) {
+    if (client.remove) {
       return client.remove(hash);
     } else {
-      throw new Error('Your client has not function delete(hash)');
+      throw new Error('Your client has not function remove(hash)');
     }
   }
 };

@@ -28,25 +28,29 @@ class TorrentHandler {
   }
 
   async add(torrent) {
-    lDebug(`[${torrent.pid}] Torrent added ${torrent.hash}`);
-    torrent.merge((await clientTorrent.getTorrent(torrent.pid, torrent.hash)));
-    this.torrents.push(torrent);
-    this.listener.on(listenerHandler.EVENT.ADDED, torrent);
+    try {
+      torrent.merge((await clientTorrent.getTorrent(torrent.pid, torrent.hash)), true);
+      this.torrents.push(torrent);
+      lDebug(`[${torrent.pid}] Torrent added ${torrent.hash}`);
+      this.listener.on(listenerHandler.EVENT.ADDED, torrent);
+    } catch(e) {
+      // @todo : manager errors
+      lError(`Torrent added failed : ${e.message}`);
+    }
   }
 
-  async update(_torrent) {
-    const t = (await clientTorrent.getTorrent(_torrent.pid, _torrent.hash));
-    _torrent.merge(t);
-    const torrent = this.getTorrent(_torrent);
-    const diff = torrent.getDiff(_torrent);
+  async update(original) {
+    const torrent = (await clientTorrent.getTorrent(original.pid, original.hash));
+    const diff = original.getDiff(torrent);
+    original.merge(torrent, false);
+    original.updateDiff(torrent, diff);
 
     if(diff.length > 0) {
-      lDebug(`[${torrent.pid}] Torrent updated : ${torrent.hash} : ${diff.join(',')}`);
-      torrent.update(_torrent, diff);
-      this.listener.on(listenerHandler.EVENT.UPDATED, torrent, diff);
+      lDebug(`[${original.pid}] Torrent updated : ${original.hash} : ${diff.join(',')}`);
+      this.listener.on(listenerHandler.EVENT.UPDATED, original, diff);
 
-      if(diff.indexOf('downloaded') !== -1 && torrent.finished) {
-        this.listener.on(listenerHandler.EVENT.FINISHED, torrent);
+      if(diff.indexOf('downloaded') !== -1 && original.finished) {
+        this.listener.on(listenerHandler.EVENT.FINISHED, original);
       }
     }
   }

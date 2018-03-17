@@ -1,24 +1,22 @@
 const debug = require('debug');
-const parseTorrent = require('parse-torrent');
 const nt = require('nt');
 const {promisify} = require('util');
 const fs = require('fs');
 const path = require('path');
 const createTorrent = require('create-torrent');
 const Torrent = require('./models/torrent');
+const {getDataTorrentFromFile} = require('./utils/torrent');
 
 const lDebug = debug('dTorrent:manager:debug');
 let listenerHandler, torrentHandler, servers = null;
 
 /**
  * Init manager
- * @param _staticList
+ * @param _listenerHandler
+ * @param _torrentHandler
+ * @param _servers
  */
-module.exports = ({
-  listenerHandler: _listenerHandler,
-  torrentHandler: _torrentHandler,
-  servers: _servers,
-}) => {
+module.exports = (_listenerHandler, _torrentHandler, _servers) => {
     lDebug('Initialize manager');
     listenerHandler = _listenerHandler;
     torrentHandler = _torrentHandler;
@@ -137,18 +135,29 @@ module.exports.createFromTorrent = async(torrentFile, server) => {
 
 	try {
 		const _torrent = getDataTorrentFromFile(torrentFile);
-		const torrent = new Torrent(_torrent.infoHash);
-		torrent.merge(_torrent);
-		torrent.addPid(pid);
 
-		if(!torrentHandler.isExist(torrent)) {
-			await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
+		if(!torrentHandler.isHashExists(_torrent.infoHash)) {
+			const isMoving = await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
 
-			return {
-				success: true,
-				torrent: torrent.toString()
-			};
-		} else {
+			if(isMoving) {
+        const torrent = new Torrent(_torrent.infoHash);
+        torrent.merge(_torrent);
+        torrent.addPid(pid);
+
+        return {
+          success: true,
+          torrent: torrent.toString()
+        };
+      }
+      else {
+        return {
+          success: false,
+          error: 'Cannot moving torrent file',
+        };
+      }
+		}
+		else {
+      const torrent = torrentHandler.getTorrentFromHash(_torrent.infoHash);
 			return {
 				success: false,
 				name: 'AlreadyExists',
@@ -330,37 +339,22 @@ async function checkTorrentIntegrity(torrentFile, dataFile) {
  * @param targetDirectory
  * @return {Promise.<void>}
  */
-async function move(file, targetDirectory) {
-	const unLink = promisify(fs.unlink);
-	const inputStream = fs.createReadStream(file);
-	const outputStream = fs.createWriteStream(targetDirectory);
+function move(file, targetDirectory) {
+  return new Promise((resolve, reject) => {
+    const unLink = promisify(fs.unlink);
+    const inputStream = fs.createReadStream(file);
+    const outputStream = fs.createWriteStream(targetDirectory);
 
-	inputStream.pipe(outputStream);
-	inputStream.on('end', (err) => {
-			if(err) {
-				throw err;
-			} else {
-				unLink(file);
-				return true;
-			}
-		});
-}
-
-/**
- * Read torrent content then return result
- * @param torrentFile
- * @return {Object}
- */
-function getDataTorrentFromFile(torrentFile) {
-	const torrent = parseTorrent(fs.readFileSync(torrentFile));
-	let l = 0;
-	for(const j in torrent.info.files) {
-		l += torrent.info.files[j].length;
-	}
-	torrent.info.total_size = l;
-	torrent.info.destination = torrentFile;
-	torrent.infoHash = torrent.infoHash.toUpperCase();
-	return torrent;
+    inputStream.pipe(outputStream);
+    inputStream.on('end', (err) => {
+      if(err) {
+        reject(err);
+      } else {
+        unLink(file);
+        resolve(true);
+      }
+    });
+  });
 }
 
 /**
@@ -370,7 +364,7 @@ function getDataTorrentFromFile(torrentFile) {
 function getPidFromServer(server) {
   if(typeof server === 'string') {
     for(const i in servers) {
-      if(servers[i].name === server) {
+      if(servers[i].server_name === server) {
         return servers[i].pid;
       }
     }
@@ -381,6 +375,8 @@ function getPidFromServer(server) {
       }
     }
   }
+
+  console.log(servers);
 
   throw new Error(`This server does not exists ${server}`);
 }

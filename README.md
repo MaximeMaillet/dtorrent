@@ -24,6 +24,10 @@ dTorrent launch, every interval, request for check all torrents and compare with
     * get list of all torrents
     * play & resume
     * delete
+    
+### Todo
+
+* Clear rtorrent session (when manually delete torrent)
 
 ## Install
 

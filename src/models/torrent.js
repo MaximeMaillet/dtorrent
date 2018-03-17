@@ -1,10 +1,11 @@
 require('dotenv').config();
 const get = require('lodash.get');
+const {getDataTorrentFromFile} = require('../utils/torrent');
 
 class Torrent {
   constructor(hash, torrent) {
     this.watchedKeys = [
-      'active', 'playing', 'progress', 'downloaded', 'uploaded', 'ratio'
+      'downloaded', 'uploaded', 'ratio'
     ];
 
     this.pid = null;
@@ -29,24 +30,27 @@ class Torrent {
 
   /**
    * @param torrent
+   * @param shouldUpdate
    * @return {Torrent}
    */
-  merge(torrent) {
+  merge(torrent, shouldUpdate) {
     this.hash = get(torrent, 'infoHash', this.hash);
     this.name = get(torrent, 'name', 'N/A');
     this.total = get(torrent, 'length', 0);
-    this.files = this.getFiles(torrent.files);
     this.path = `${process.env.STORAGE}/dtorrent/torrent/${this.name}.torrent`;
+
+    const dataFiles = getDataTorrentFromFile(this.path);
+    this.files = this.getFiles(dataFiles.files);
 
     this.downloaded = get(torrent, 'downloaded', this.downloaded);
     this.uploaded = get(torrent, 'uploaded', this.uploaded);
     this.ratio = get(torrent, 'ratio', this.ratio);
-    this.progress = get(torrent, 'progress', this.progress);
-    this.playing = get(torrent, 'playing', this.playing);
-    this.active = get(torrent, 'active', this.active);
     this.extra = get(torrent, 'extra', this.extra);
 
     torrent = null;
+    if(shouldUpdate) {
+      this.update();
+    }
     return this;
   }
 
@@ -84,23 +88,23 @@ class Torrent {
    * @param torrent
    * @param diff
    */
-  update(torrent, diff) {
-    for(const i in diff) {
+  updateDiff(torrent, diff) {
+    if(diff.indexOf('downloaded') !== -1 || diff.indexOf('uploaded') !== -1) {
+      this.active = true;
+    }
 
-      if(diff[i] === 'downloaded') {
-        this.playing = true;
-        this.progress = Math.round((torrent.downloaded*100) / torrent.size);
-      }
+    if(diff.indexOf('ratio') !== -1) {
+      this.ratio = torrent.ratio;
+    }
 
-      if(this.progress === 100) {
-        this.finished = true;
-      }
+    this.update();
+  }
 
-      if(diff[i] === 'uploaded') {
-        this.playing = true;
-      }
+  update() {
+    this.progress = Math.round((this.downloaded*100) / this.total);
 
-      this[diff[i]] = torrent[diff[i]];
+    if(this.progress === 100) {
+      this.finished = true;
     }
   }
 

@@ -11,27 +11,39 @@ class ListenerHandler {
     for(const i in this.listeners) {
       switch(event) {
         case module.exports.EVENT.ADDED:
-          this.listeners[i].onAdded(torrent.toString());
-          sendWebHook(event, torrent.toString());
+          if(this.listeners[i].onAdded) {
+            this.listeners[i].onAdded(torrent.toString());
+          }
+          this.sendWebHook(event, torrent.toString());
           break;
         case module.exports.EVENT.REMOVED:
-          this.listeners[i].onRemoved(torrent.toString());
-          sendWebHook(event, torrent.toString());
+          if(this.listeners[i].onRemoved) {
+            this.listeners[i].onRemoved(torrent.toString());
+          }
+          this.sendWebHook(event, torrent.toString());
           break;
         case module.exports.EVENT.UPDATED:
-          this.listeners[i].onUpdated(torrent.toString(), extra);
+          if(this.listeners[i].onUpdated) {
+            this.listeners[i].onUpdated(torrent.toString(), extra);
+          }
           break;
         case module.exports.EVENT.PAUSED:
-          this.listeners[i].onPaused(torrent.toString());
-          sendWebHook(event, torrent.toString());
+          if(this.listeners[i].onPaused) {
+            this.listeners[i].onPaused(torrent.toString());
+          }
+          this.sendWebHook(event, torrent.toString());
           break;
         case module.exports.EVENT.RESUMED:
-          this.listeners[i].onResumed(torrent.toString());
-          sendWebHook(event, torrent.toString());
+          if(this.listeners[i].onResumed) {
+            this.listeners[i].onResumed(torrent.toString());
+          }
+          this.sendWebHook(event, torrent.toString());
           break;
         case module.exports.EVENT.FINISHED:
-          this.listeners[i].onFinished(torrent.toString());
-          sendWebHook(event, torrent.toString());
+          if(this.listeners[i].onFinished) {
+            this.listeners[i].onFinished(torrent.toString());
+          }
+          this.sendWebHook(event, torrent.toString());
           break;
       }
     }

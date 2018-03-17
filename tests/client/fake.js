@@ -3,9 +3,9 @@
 const list = [];
 let ID = 1;
 
-setTimeout(() => {
+// setTimeout(() => {
 	hydrate();
-}, 100);
+// }, 1000);
 
 module.exports.list = async(details) => {
 	return list
@@ -63,17 +63,19 @@ module.exports.open = async(hash) => {
 };
 
 function hydrate() {
-	list.push(createFakeTorrent());
+  list.push(createFakeTorrent());
 
-	const clearFirstStepAdded = setInterval(() => {
-		list.push(createFakeTorrent());
-		if(list.length > 5) {
-			clearInterval(clearFirstStepAdded);
-		}
-	}, 1000);
+	// const clearFirstStepAdded = setInterval(() => {
+	// 	list.push(createFakeTorrent());
+	// 	if(list.length > 5) {
+	// 		clearInterval(clearFirstStepAdded);
+	// 	}
+	// }, 1000);
 
 	setInterval(() => {
-		list.push(createFakeTorrent());
+    if(list.length < 5) {
+      list.push(createFakeTorrent());
+    }
 	}, 15000);
 
 	setInterval(() => {
@@ -81,23 +83,28 @@ function hydrate() {
 	}, 500);
 
 	setInterval(() => {
-		removeTorrent();
-	}, 9000);
+		// removeTorrent();
+	}, 20000);
 }
 
 function updateTorrent() {
 	for(const i in list) {
 		const torrent = list[i];
 
-		if(torrent.downloaded < torrent.size) {
-			torrent.downloaded += Math.floor(Math.random() * 10) * 1024 * 1024;
-		}
+    if(torrent.downloaded < torrent.length) {
+      torrent.downloaded += Math.floor(Math.random() * 100) * 1024 * 1024;
+    }
 
-		if(torrent.downloaded > torrent.size) {
-			torrent.downloaded = torrent.size;
-		}
+    if(torrent.downloaded > torrent.length) {
+			torrent.downloaded = torrent.length;
+    }
 
-		torrent.uploaded += Math.floor(Math.random() * 100) * 1024;
+    if(torrent.downloaded === torrent.length) {
+      torrent.uploaded += Math.floor(Math.random() * 5000) * 1024;
+    } else {
+      torrent.uploaded += Math.floor(Math.random() * 500) * 1024;
+    }
+
 		torrent.ratio = Math.round((torrent.uploaded / torrent.downloaded)*100) / 1000;
 	}
 }
@@ -119,7 +126,7 @@ function createFakeTorrent() {
 		active: true,
 		downloaded: 0,
 		uploaded: 0,
-		size: Math.floor((Math.random() * 1024*10) + 1) * 1024 * 1024,
+		length: Math.floor((Math.random() * 1024*10) + 1) * 1024 * 1024,
 		ratio: 0,
 		extra: {
 			removed: false

@@ -19,7 +19,7 @@ let staticPID = 0;
  * @return {Promise.<exports>}
  */
 module.exports.manager = async() => {
-	return require('./src/manager')({listenerHandler, torrentHandler});
+	return require('./src/manager')(listenerHandler, torrentHandler, servers);
 };
 
 /**
