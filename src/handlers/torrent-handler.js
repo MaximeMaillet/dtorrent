@@ -1,168 +1,201 @@
-'use strict';
 const debug = require('debug');
-const lDebug = debug('dTorrent:handler:torrent:debug');
-const lError = debug('dTorrent:handler:torrent:list:error');
+const lDebug = debug('dTorrent:handler:debug');
+const lError = debug('dTorrent:handler:error');
 
 const clientTorrent = require('../clients/client');
 const Torrent = require('../models/torrent');
+const listenerHandler = require('./listener-handler');
 
-const torrents = [];
-let listenerHandler = null;
+class TorrentHandler {
+  constructor(listenerHandler) {
+    this.listener = listenerHandler;
+    this.torrents = [];
+  }
 
-module.exports.addListenerHandler = (_listenerHandler) => {
-	listenerHandler = _listenerHandler;
-};
+  async handle(hash, pid) {
+    try {
+      if(this.isHashExists(hash)) {
+        const torrent = this.getTorrentFromHash(hash);
+        this.update(torrent);
+      } else {
+        const torrent = new Torrent(hash);
+        torrent.addPid(pid);
+        this.add(torrent);
+      }
+    } catch(e) {
+      lError(`Fail 'handle' (${hash}) : ${e.message}`);
+    }
+  }
 
-/**
- * @param torrent
- * @return {Promise.<void>}
- */
-module.exports.add = async(torrent) => {
-	lDebug(`Torrent added ${torrent.hash}`);
-	torrent.merge((await clientTorrent.getTorrent(torrent.hash)));
-	torrents.push(torrent);
-	listenerHandler.on(listenerHandler.EVENT.ADDED, torrent);
-};
+  async add(torrent) {
+    lDebug(`[${torrent.pid}] Torrent added ${torrent.hash}`);
+    torrent.merge((await clientTorrent.getTorrent(torrent.pid, torrent.hash)));
+    this.torrents.push(torrent);
+    this.listener.on(listenerHandler.EVENT.ADDED, torrent);
+  }
 
-/**
- * @param _torrent
- * @return {Promise.<void>}
- */
-module.exports.update = async(_torrent) => {
-	_torrent.merge((await clientTorrent.getTorrent(_torrent.hash)));
-	const torrent = module.exports.getTorrent(_torrent);
-	const diff = torrent.getDiff(_torrent);
+  async update(_torrent) {
+    const t = (await clientTorrent.getTorrent(_torrent.pid, _torrent.hash));
+    _torrent.merge(t);
+    const torrent = this.getTorrent(_torrent);
+    const diff = torrent.getDiff(_torrent);
 
-	if(diff.length > 0) {
-		lDebug(`Torrent updated : ${_torrent.hash} : ${diff.join(',')}`);
-		torrent.update(_torrent, diff);
-		listenerHandler.on(listenerHandler.EVENT.UPDATED, torrent, diff);
+    if(diff.length > 0) {
+      lDebug(`[${torrent.pid}] Torrent updated : ${torrent.hash} : ${diff.join(',')}`);
+      torrent.update(_torrent, diff);
+      this.listener.on(listenerHandler.EVENT.UPDATED, torrent, diff);
 
-		if(diff.indexOf('downloaded') !== -1 && torrent.finished) {
-			listenerHandler.on(listenerHandler.EVENT.FINISHED, torrent);
-		}
-	}
-};
+      if(diff.indexOf('downloaded') !== -1 && torrent.finished) {
+        this.listener.on(listenerHandler.EVENT.FINISHED, torrent);
+      }
+    }
+  }
 
-/**
- * @param _torrent
- * @return {boolean}
- */
-module.exports.isExist = (_torrent) => {
-	const torrent = module.exports.getTorrent(_torrent);
-	return torrent !== null;
-};
+  /**
+   * Check if hash exists
+   * @param hash
+   * @return {boolean}
+   */
+  isHashExists(hash) {
+    for(const i in this.torrents) {
+      if(this.torrents[i].hash === hash) {
+        return true;
+      }
+    }
 
-/**
- * @param torrent
- * @return {*}
- */
-module.exports.getTorrent = (torrent) => {
-	for(const i in torrents) {
-		if(torrents[i].hash === torrent.hash) {
-			return torrents[i];
-		}
-	}
-	return null;
-};
+    return false;
+  }
 
-/**
- * @return {Array}
- */
-module.exports.getList = () => {
-	const r = [];
-	for(const i in torrents) {
-		r.push(torrents[i].toString());
-	}
-	return r;
-};
+  /**
+   * @param torrent
+   * @return {*}
+   */
+  getTorrent(torrent) {
+    for(const i in this.torrents) {
+      if(this.torrents[i].hash === torrent.hash) {
+        return this.torrents[i];
+      }
+    }
+    return null;
+  }
 
-/**
- * @param _torrent
- * @return {Promise.<*>}
- */
-module.exports.pause = async(_torrent) => {
-	if((typeof _torrent) === 'string') {
-		_torrent = new Torrent(_torrent);
-	}
-	const torrent = module.exports.getTorrent(_torrent);
-	if(torrent === null) {
-		throw new Error('Torrent does not exists');
-	}
+  /**
+   * Get all torrents
+   * @return {Array}
+   */
+  getAll(pid) {
+    const arrayReturn = [];
+    let list = this.torrents;
 
-	try {
-		const result = await clientTorrent.pause(torrent.hash);
-		lDebug(`PAUSE : ${result}`);
-		torrent.playing = false;
-		torrent.active = false;
-		listenerHandler.on(listenerHandler.EVENT.PAUSED, torrent);
-		return torrent;
-	} catch(e) {
-		throw e;
-	}
+    if(pid) {
+      list = list.filter((torrent) => torrent.pid === pid);
+    }
 
-};
+    for(const i in list) {
+      arrayReturn.push(this.torrents[i].toString());
+    }
 
-/**
- * @param _torrent
- * @return {Promise.<*>}
- */
-module.exports.resume = async(_torrent) => {
-	if((typeof _torrent) === 'string') {
-		_torrent = new Torrent(_torrent);
-	}
-	const torrent = module.exports.getTorrent(_torrent);
-	if(torrent === null) {
-		throw new Error('Torrent does not exists');
-	}
+    return arrayReturn;
+  }
 
-	try {
-		const result = await clientTorrent.resume(torrent.hash);
-		lDebug(`RESUME : ${result}`);
-		torrent.active = true;
-		listenerHandler.on(listenerHandler.EVENT.RESUMED, torrent);
-		return torrent;
-	} catch(e) {
-		throw e;
-	}
-};
+  /**
+   * Resume a torrent
+   * @param hash
+   * @return {Promise.<*>}
+   */
+  async resume(hash) {
+    const torrent = this.getTorrentFromHash(hash);
 
-/**
- * @param _torrent
- * @return {Promise.<boolean>}
- */
-module.exports.delete = async(_torrent) => {
-	if((typeof _torrent) === 'string') {
-		_torrent = new Torrent(_torrent);
-	}
-	const torrent = module.exports.getTorrent(_torrent);
-	if(torrent === null) {
-		throw new Error('Torrent does not exists');
-	}
+    if(torrent === null) {
+      throw new Error('Torrent does not exists');
+    }
 
-	try {
-		const result = await clientTorrent.delete(torrent.hash);
-		torrents.splice(torrents.indexOf(torrent), 1);
-		lDebug(`Torrent removed ${torrent.hash}`);
-		listenerHandler.on(listenerHandler.EVENT.REMOVED, torrent);
-		return true;
-	} catch(e) {
-		throw e;
-	}
-};
+    try {
+      await clientTorrent.resume(torrent.pid, torrent.hash);
+      torrent.active = true;
+      this.listener.on(listenerHandler.EVENT.RESUMED, torrent);
+      return torrent;
+    } catch(e) {
+      throw e;
+    }
+  }
 
-/**
- * Check state torrent, diff with static list and client torrent
- * @param list
- * @return {Promise.<void>}
- */
-module.exports.checkState = async(list) => {
-	for(const i in torrents) {
-		const index = list.indexOf(torrents[i].hash);
-		if(index === -1) {
-			lDebug(`Torrent removed ${torrents[i].hash}`);
-			listenerHandler.on(listenerHandler.EVENT.REMOVED, torrents[i]);
-			torrents.splice(i, 1);
-		}
-	}
-};
+  /**
+   * Put torrent in pause
+   * @param hash
+   * @return {Promise.<*>}
+   */
+  async pause(hash) {
+    const torrent = this.getTorrentFromHash(hash);
+
+    if(torrent === null) {
+      throw new Error('Torrent does not exists');
+    }
+
+    try {
+      await clientTorrent.pause(torrent.pid, torrent.hash);
+      torrent.playing = false;
+      torrent.active = false;
+      this.listener.on(listenerHandler.EVENT.PAUSED, torrent);
+      return torrent;
+    } catch(e) {
+      throw e;
+    }
+  }
+
+  /**
+   * @param hash
+   * @return {Promise.<boolean>}
+   */
+  async remove(hash) {
+    const torrent = this.getTorrentFromHash(hash);
+
+    if(torrent === null) {
+      throw new Error('Torrent does not exists');
+    }
+
+    try {
+      await clientTorrent.remove(torrent.pid, torrent.hash);
+      this.torrents.splice(this.torrents.indexOf(torrent), 1);
+      lDebug(`[${torrent.pid}] Torrent removed ${torrent.hash}`);
+      this.listener.on(listenerHandler.EVENT.REMOVED, torrent);
+      return true;
+    } catch(e) {
+      throw e;
+    }
+  }
+
+  /**
+   * @param hash
+   * @return {*}
+   */
+  getTorrentFromHash(hash) {
+    for(const i in this.torrents) {
+      if(this.torrents[i].hash === hash) {
+        return this.torrents[i];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Dedupe torrents
+   * @param list
+   * @param pid
+   * @return {Promise.<void>}
+   */
+  async checkState(list, pid) {
+    const torrentList = this.torrents.filter((torrent) => torrent.pid === pid);
+    for(const i in torrentList) {
+      const index = list.indexOf(torrentList[i].hash);
+      if(index === -1) {
+        lDebug(`[${torrentList[i].pid}] Torrent removed ${torrentList[i].hash}`);
+        this.listener.on(listenerHandler.EVENT.REMOVED, torrentList[i]);
+        this.torrents.splice(i, 1);
+      }
+    }
+  }
+}
+
+module.exports.TorrentHandler = TorrentHandler;
+

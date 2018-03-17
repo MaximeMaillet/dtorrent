@@ -1,38 +1,19 @@
 require('dotenv').config();
-'use strict';
-
 const debug = require('debug');
-const workerList = require('./src/workers/list');
-const torrentHandler = require('./src/handlers/torrent-handler');
-const listenerHandler = require('./src/handlers/listener-handler');
-const client = require('./src/clients/client');
-
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
 
-let pid = 0;
+const {ListenerHandler} = require('./src/handlers/listener-handler');
+const {TorrentHandler} = require('./src/handlers/torrent-handler');
+const listenerHandler = new ListenerHandler();
+const torrentHandler = new TorrentHandler(listenerHandler);
 
-module.exports.joinClient = (_client) => {
-	client.assign(_client);
-};
+const servers = [];
 
-/**
- * Start app
- * @param config
- * @return {Promise.<void>}
- */
-module.exports.start = async(config) => {
-	try {
-		pid++;
-		config = addConfig(config);
-		module.exports.joinClient(config.client);
+const workerList = require('./src/workers/list');
+const client = require('./src/clients/client');
 
-		lDebug('Start app');
-		await workerList.start({listenerHandler, torrentHandler}, config);
-	} catch(e) {
-		lError(`Exception app ${e}`);
-	}
-};
+let staticPID = 0;
 
 /**
  * @return {Promise.<exports>}
@@ -47,16 +28,46 @@ module.exports.manager = async() => {
  * @return {Promise.<void>}
  */
 module.exports.fake = async(config) => {
-	try {
-		pid++;
-		config = addConfig(config);
-		module.exports.joinClient(require('./tests/client/fake'));
+  for(const i in config) {
+    config[i].client = require('./tests/client/fake');
+  }
+  await module.exports.start(config);
+};
 
-		lDebug('Start app');
-		await workerList.start({listenerHandler, torrentHandler}, config);
-	} catch(e) {
-		lError(`Exception app ${e}`);
-	}
+/**
+ * Start server dTorrent
+ * @param config
+ * @return {Promise.<void>}
+ */
+module.exports.start = async(config) => {
+  for(const i in config) {
+    try {
+      config[i] = addConfig(config[i]);
+
+      const server = {
+        pid: staticPID++,
+        client,
+        config: config[i],
+      };
+
+      module.exports.joinClient(server.pid, config[i].client);
+
+      server.server_name = config[i].name || `Server ${server.pid}`;
+      servers.push(server);
+
+      lDebug(`Start servers ${server.server_name}`);
+      await workerList.start(torrentHandler, Object.assign(config[i], {pid: server.pid}));
+    } catch(e) {
+      lError(`Exception app ${e}`);
+    }
+  }
+};
+
+/**
+ * @param _client
+ */
+module.exports.joinClient = (pid, _client) => {
+  client.assign(pid, _client);
 };
 
 /**

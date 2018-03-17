@@ -5,7 +5,7 @@ let ID = 1;
 
 setTimeout(() => {
 	hydrate();
-}, 3000);
+}, 100);
 
 module.exports.list = async(details) => {
 	return list
@@ -44,7 +44,7 @@ module.exports.resume = async(hash) => {
 	}
 };
 
-module.exports.delete = async(hash) => {
+module.exports.remove = async(hash) => {
 	for(const i in list) {
 		if(list[i].hash === hash) {
 			list[i].extra.removed = true;

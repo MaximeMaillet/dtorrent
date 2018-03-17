@@ -1,10 +1,67 @@
-'use strict';
-
 const hh = require('http-https');
 const url = require('url');
 
-const listeners = [];
-const webhooks = [];
+class ListenerHandler {
+  constructor() {
+    this.listeners = [];
+    this.webhooks = [];
+  }
+
+  on(event, torrent, extra) {
+    for(const i in this.listeners) {
+      switch(event) {
+        case module.exports.EVENT.ADDED:
+          this.listeners[i].onAdded(torrent.toString());
+          sendWebHook(event, torrent.toString());
+          break;
+        case module.exports.EVENT.REMOVED:
+          this.listeners[i].onRemoved(torrent.toString());
+          sendWebHook(event, torrent.toString());
+          break;
+        case module.exports.EVENT.UPDATED:
+          this.listeners[i].onUpdated(torrent.toString(), extra);
+          break;
+        case module.exports.EVENT.PAUSED:
+          this.listeners[i].onPaused(torrent.toString());
+          sendWebHook(event, torrent.toString());
+          break;
+        case module.exports.EVENT.RESUMED:
+          this.listeners[i].onResumed(torrent.toString());
+          sendWebHook(event, torrent.toString());
+          break;
+        case module.exports.EVENT.FINISHED:
+          this.listeners[i].onFinished(torrent.toString());
+          sendWebHook(event, torrent.toString());
+          break;
+      }
+    }
+  }
+
+  addListener(listener) {
+    this.listeners.push(listener);
+  }
+
+  removeListener(listener) {
+    this.listeners.splice(this.listeners.indexOf(listener), 1);
+  }
+
+  addWebHook(url, callback) {
+    if (this.webhooks.indexOf(url) === -1) {
+      this.webhooks.push({
+        url: url.parse(url),
+        callback
+      });
+    }
+  }
+
+  removeWebHook(url) {
+    if(this.webhooks.indexOf(url) !== -1) {
+      this.webhooks.splice(this.webhooks.indexOf(url), 1);
+    }
+  }
+}
+
+module.exports.ListenerHandler = ListenerHandler;
 
 module.exports.EVENT = {
 	ADDED: 'added',
@@ -13,64 +70,6 @@ module.exports.EVENT = {
 	FINISHED: 'finished',
 	RESUMED: 'resumed',
 	PAUSED: 'paused',
-};
-
-module.exports.add = (listener) => {
-	listeners.push(listener);
-};
-
-module.exports.remove = (listener) => {
-	listeners.splice(listeners.indexOf(listener), 1);
-};
-
-module.exports.addWebhook = (_url, callback) => {
-	if(webhooks.indexOf(url) === -1) {
-		webhooks.push({
-			url: url.parse(_url),
-			callback
-		});
-	}
-};
-
-module.exports.removeWebhook = (url) => {
-	if(webhooks.indexOf(url) !== -1) {
-		webhooks.splice(webhooks.indexOf(url), 1);
-	}
-};
-
-/**
- * @param event
- * @param torrent : Torrent
- * @param extra
- */
-module.exports.on = (event, torrent, extra) => {
-	for(const i in listeners) {
-		switch(event) {
-			case module.exports.EVENT.ADDED:
-				listeners[i].onAdded(torrent.toString());
-				sendWebHook(event, torrent.toString());
-				break;
-			case module.exports.EVENT.REMOVED:
-				listeners[i].onRemoved(torrent.toString());
-				sendWebHook(event, torrent.toString());
-				break;
-			case module.exports.EVENT.UPDATED:
-				listeners[i].onUpdated(torrent.toString(), extra);
-				break;
-			case module.exports.EVENT.PAUSED:
-				listeners[i].onPaused(torrent.toString());
-				sendWebHook(event, torrent.toString());
-				break;
-			case module.exports.EVENT.RESUMED:
-				listeners[i].onResumed(torrent.toString());
-				sendWebHook(event, torrent.toString());
-				break;
-			case module.exports.EVENT.FINISHED:
-				listeners[i].onFinished(torrent.toString());
-				sendWebHook(event, torrent.toString());
-				break;
-		}
-	}
 };
 
 /**

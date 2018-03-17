@@ -1,28 +1,22 @@
 require('dotenv').config();
-'use strict';
-
 const debug = require('debug');
-
-const clientTorrent = require('../clients/client');
-const Torrent = require('../models/torrent');
-
 const lDebug = debug('dTorrent:worker:list:debug');
 const lError = debug('dTorrent:worker:list:error');
+
+const clientTorrent = require('../clients/client');
 
 /**
  * Resolve list of hash
  * @returns {Promise}
- * @param listenerHandler
  * @param torrentHandler
  * @param config
  */
-module.exports.start = async({listenerHandler, torrentHandler}, config) => {
-	lDebug('Start worker list ');
-	torrentHandler.addListenerHandler(listenerHandler);
-	list(torrentHandler);
+module.exports.start = async(torrentHandler, config) => {
+	lDebug(`${config.name} : Start worker list`);
+	list(torrentHandler, config);
 
 	setInterval(() => {
-		list(torrentHandler);
+		list(torrentHandler, config);
 	}, config.interval_check);
 };
 
@@ -30,22 +24,14 @@ module.exports.start = async({listenerHandler, torrentHandler}, config) => {
  * List all torrents
  * @return {Promise.<void>}
  */
-async function list(torrentHandler) {
+async function list(torrentHandler, config) {
 	try {
-		const list = await clientTorrent.list();
+		const list = await clientTorrent.list(config.pid);
 		for(const i in list) {
-			const trnt = new Torrent(list[i]);
-			if(torrentHandler.isExist(trnt)) {
-				torrentHandler.update(trnt);
-			}
-			else {
-				await torrentHandler.add(trnt);
-			}
+			torrentHandler.handle(list[i], config.pid);
 		}
-
-		torrentHandler.checkState(list);
+		torrentHandler.checkState(list, config.pid);
 	} catch (error) {
-		console.log(error);
 		lError(`Exception ${error}`);
 	}
 }

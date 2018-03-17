@@ -1,102 +1,126 @@
 require('dotenv').config();
-const path = require('path')
+const get = require('lodash.get');
 
-module.exports = Torrent;
+class Torrent {
+  constructor(hash, torrent) {
+    this.watchedKeys = [
+      'active', 'playing', 'progress', 'downloaded', 'uploaded', 'ratio'
+    ];
 
-const movieExtensions = [
-  '.avi', '.mp4', '.mkv'
-];
+    this.pid = null;
+    this.hash = hash;
+    this.name= get(torrent, 'name', null);
+    this.active= false;
+    this.finished= false;
+    this.playing= false;
+    this.progress= 0;
+    this.downloaded= 0;
+    this.uploaded= 0;
+    this.total= get(torrent, 'total', 0);
+    this.ratio= 0;
+    this.extra= {};
+    this.path= get(torrent, 'path', '');
+    this.files = get(torrent, 'files', []);
+  }
 
-function Torrent(hash) {
-	this.model = {
-		hash: hash,
-		name: null,
-		active: false,
-		finished: false,
-		playing: false,
-		progress: 0,
-		downloaded: 0,
-		uploaded: 0,
-		size: 0,
-		ratio: 0,
-		extra: {},
-		file_path: '',
-	};
-	const keys = Object.keys(this.model);
-	for(const i in keys) {
-		this[keys[i]] = this.model[keys[i]];
-	}
-}
+  addPid(pid) {
+    this.pid = pid;
+  }
 
-Torrent.prototype.merge = function(_torrent) {
-	const keys = Object.keys(this.model);
-	for(const i in keys) {
-		if(_torrent[keys[i]]) {
-			this.model[keys[i]] = _torrent[keys[i]];
-			this[keys[i]] = _torrent[keys[i]];
-		}
-	}
+  /**
+   * @param torrent
+   * @return {Torrent}
+   */
+  merge(torrent) {
+    this.hash = get(torrent, 'infoHash', this.hash);
+    this.name = get(torrent, 'name', 'N/A');
+    this.total = get(torrent, 'length', 0);
+    this.files = this.getFiles(torrent.files);
+    this.path = `${process.env.STORAGE}/dtorrent/torrent/${this.name}.torrent`;
 
-	this.model.path = this.getPath(_torrent.extra.files);
-	this.path = this.getPath(_torrent.extra.files);
+    this.downloaded = get(torrent, 'downloaded', this.downloaded);
+    this.uploaded = get(torrent, 'uploaded', this.uploaded);
+    this.ratio = get(torrent, 'ratio', this.ratio);
+    this.progress = get(torrent, 'progress', this.progress);
+    this.playing = get(torrent, 'playing', this.playing);
+    this.active = get(torrent, 'active', this.active);
+    this.extra = get(torrent, 'extra', this.extra);
 
-	if(this.downloaded === this.size) {
-		this.finished = true;
-	}
+    torrent = null;
+    return this;
+  }
 
-	this.progress = Math.round((this.downloaded*100) / this.size);
-	this.file_path = `${process.env.STORAGE}/dtorrent/torrent/${this.name}.torrent`;
+  /**
+   * @param buffer
+   * @return {Array}
+   */
+  getFiles(buffer) {
+    const arrayReturn = [];
+    for(const i in buffer) {
+      arrayReturn.push({
+        name: buffer[i].name,
+        path: `${process.env.STORAGE}/dtorrent/downloaded/${buffer[i].path}`,
+      });
+    }
 
-	return this;
-};
+    return arrayReturn;
+  }
 
-Torrent.prototype.getDiff = function(_torrent) {
-	const ignoreFields = ['extra', 'finished'];
-	const diff = [];
-	const keys = Object.keys(this.model);
-	for(const i in keys) {
-		if(ignoreFields.indexOf(keys[i]) === -1 && this[keys[i]] !== _torrent[keys[i]]) {
-			diff.push(keys[i]);
-		}
-	}
-	return diff;
-};
-
-Torrent.prototype.update = function(_torrent, diff) {
-	for(const i in diff) {
-
-		if(diff[i] === 'downloaded') {
-			this.playing = true;
-			this.progress = Math.round((_torrent.downloaded*100) / _torrent.size);
-			if(this.progress === 100) {
-				this.finished = true;
-			}
-		}
-
-		if(diff[i] === 'uploaded') {
-			this.playing = true;
-		}
-
-		this[diff[i]] = _torrent[diff[i]];
-	}
-};
-
-Torrent.prototype.toString = function() {
-  const keys = Object.keys(this.model);
-  console.log(this.model);
-	const model = {};
-	for(const i in keys) {
-		model[keys[i]] = this[keys[i]];
-	}
-	return model;
-};
-
-Torrent.prototype.getPath = function(buffer) {
-  for(const i in buffer) {
-    if(buffer[i].path[0].toString()) {
-      if(movieExtensions.indexOf(path.extname(buffer[i].path[0].toString())) !== -1) {
-        return `${process.env.STORAGE}/dtorrent/downloaded/${buffer[i].path[0].toString()}`;
+  /**
+   * @param torrent
+   * @return {Array}
+   */
+  getDiff(torrent) {
+    const diff = [];
+    for(const i in this.watchedKeys) {
+      if(this[this.watchedKeys[i]] !== torrent[this.watchedKeys[i]]) {
+        diff.push(this.watchedKeys[i]);
       }
     }
+    return diff;
   }
-};
+
+  /**
+   * @param torrent
+   * @param diff
+   */
+  update(torrent, diff) {
+    for(const i in diff) {
+
+      if(diff[i] === 'downloaded') {
+        this.playing = true;
+        this.progress = Math.round((torrent.downloaded*100) / torrent.size);
+      }
+
+      if(this.progress === 100) {
+        this.finished = true;
+      }
+
+      if(diff[i] === 'uploaded') {
+        this.playing = true;
+      }
+
+      this[diff[i]] = torrent[diff[i]];
+    }
+  }
+
+  toString() {
+    return {
+      hash: this.hash,
+      name: this.name,
+      active: this.active,
+      finished: this.finished,
+      playing: this.playing,
+      progress: this.progress,
+      downloaded: this.downloaded,
+      uploaded: this.uploaded,
+      total: this.total,
+      ratio: this.ratio,
+      extra: this.extra,
+      path: this.path,
+      files: this.files,
+    };
+  }
+}
+
+module.exports = Torrent;

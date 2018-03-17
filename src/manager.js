@@ -10,44 +10,47 @@ const createTorrent = require('create-torrent');
 const Torrent = require('./models/torrent');
 
 const lDebug = debug('dTorrent:manager:debug');
-let listenerHandler, torrentHandler = null;
+let listenerHandler, torrentHandler, servers = null;
 
 /**
  * Init manager
  * @param _staticList
  */
-module.exports = ({listenerHandler: _listenerHandler, torrentHandler: _torrentHandler}) => {
-	lDebug('Initialize manager');
-	listenerHandler = _listenerHandler;
-	torrentHandler = _torrentHandler;
-	return module.exports;
-};
+module.exports = ({
+  listenerHandler: _listenerHandler,
+  torrentHandler: _torrentHandler,
+  servers: _servers,
+}) => {
+    lDebug('Initialize manager');
+    listenerHandler = _listenerHandler;
+    torrentHandler = _torrentHandler;
+    servers = _servers;
+
+    return module.exports;
+  }
+;
 
 module.exports.addListener = (callback) => {
-	listenerHandler.add(callback);
+	listenerHandler.addListener(callback);
 };
 
 module.exports.removeListener = (callback) => {
-	listenerHandler.remove(callback);
+	listenerHandler.removeListener(callback);
 };
 
 module.exports.addWebHook = (url, callback) => {
-	listenerHandler.addWebhook(url, callback);
+	listenerHandler.addWebHook(url, callback);
 };
 
 module.exports.removeWebhHook = (url) => {
-	listenerHandler.removeWebhook(url);
+	listenerHandler.removeWebhHook(url);
 };
 /**
  * Get all torrent
  * @return {Promise.<*>}
  */
-module.exports.getAll = async() => {
-	try {
-		return (await torrentHandler.getList());
-	} catch(e) {
-		throw e;
-	}
+module.exports.getAll = async(pid) => {
+	return torrentHandler.getAll(pid);
 };
 
 /**
@@ -60,12 +63,7 @@ module.exports.getOne = async(hash) => {
 		throw new Error('Hash is missing');
 	}
 
-	try {
-		const torrent = new Torrent(hash);
-		return (await torrentHandler.getTorrent(torrent).toString());
-	} catch(e) {
-		throw e;
-	}
+	return torrentHandler.getTorrentFromHash(hash);
 };
 
 /**
@@ -79,8 +77,7 @@ module.exports.pause = async(hash) => {
 	}
 
 	try {
-		const torrent = new Torrent(hash);
-		return (await torrentHandler.pause(torrent)).toString();
+		return (await torrentHandler.pause(hash)).toString();
 	} catch(e) {
 		throw e;
 	}
@@ -97,8 +94,7 @@ module.exports.resume = async(hash) => {
 	}
 
 	try {
-		const torrent = new Torrent(hash);
-		return (await torrentHandler.resume(torrent)).toString();
+		return (await torrentHandler.resume(hash)).toString();
 	} catch(e) {
 		throw e;
 	}
@@ -109,14 +105,13 @@ module.exports.resume = async(hash) => {
  * @param hash
  * @return {Promise.<boolean>}
  */
-module.exports.delete = async(hash) => {
+module.exports.remove = async(hash) => {
 	if(!hash) {
 		throw new Error('Hash is missing');
 	}
 
 	try {
-		const torrent = new Torrent(hash);
-		return (await torrentHandler.delete(torrent)).toString();
+		return (await torrentHandler.remove(hash)).toString();
 	} catch(e) {
 		throw e;
 	}
@@ -135,18 +130,16 @@ module.exports.extractTorrentFile = (torrentFile) => {
  * Create torrent from torrent file (for upload)
  * @return {Promise.<*>}
  * @param torrentFile
+ * @param server
  */
-module.exports.createFromTorrent = async(torrentFile) => {
+module.exports.createFromTorrent = async(torrentFile, server) => {
+  const pid = getPidFromServer(server);
+
 	try {
 		const _torrent = getDataTorrentFromFile(torrentFile);
 		const torrent = new Torrent(_torrent.infoHash);
-		torrent.merge({
-      name: _torrent.name,
-      size: _torrent.length,
-      extra: {
-        ..._torrent.info
-      },
-    });
+		torrent.merge(_torrent);
+		torrent.addPid(pid);
 
 		if(!torrentHandler.isExist(torrent)) {
 			await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
@@ -175,23 +168,26 @@ module.exports.createFromTorrent = async(torrentFile) => {
  * Add torrent file + data file
  * @param torrentFile
  * @param dataFile
+ * @param server
  * @return {Promise.<*>}
  */
-module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
-
+module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) => {
+  const pid = getPidFromServer(server);
+  let success = null;
   try {
-    const success = await checkTorrentIntegrity(torrentFile, dataFile);
+    success = await checkTorrentIntegrity(torrentFile, dataFile);
   } catch(e) {
     throw {
       message: 'Integrity torrent failed',
       errors: e,
-    }
+    };
   }
 
 	if(success) {
 		try {
 			const _torrent = getDataTorrentFromFile(torrentFile);
 			const torrent = new Torrent(_torrent.infoHash);
+			torrent.addPid(pid);
 
 			if(!torrentHandler.isExist(torrent)) {
 				await move(dataFile, `${process.env.STORAGE}/dtorrent/downloaded/${_torrent.name}`);
@@ -230,9 +226,11 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile) => {
  * @param dataFiles
  * @param tracker
  * @param torrentName
+ * @param server
  * @return {Promise.<void>}
  */
-module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName) => {
+module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName, server) => {
+  const pid = getPidFromServer(server);
 
 	if(dataFiles.length === 0) {
 		throw new Error('You should upload at least one file');
@@ -263,6 +261,7 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName)
 				fs.writeFileSync(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`, _torrent);
 				const t = module.exports.extractTorrentFile(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`);
 				torrent = new Torrent(t.infoHash);
+				torrent.addPid(pid);
 				torrent.name = t.name;
 				torrent.finished = true;
 				torrent.progress = 100;
@@ -363,4 +362,26 @@ function getDataTorrentFromFile(torrentFile) {
 	torrent.info.destination = torrentFile;
 	torrent.infoHash = torrent.infoHash.toUpperCase();
 	return torrent;
+}
+
+/**
+ * @param server
+ * @return {null}
+ */
+function getPidFromServer(server) {
+  if(typeof server === 'string') {
+    for(const i in servers) {
+      if(servers[i].name === server) {
+        return servers[i].pid;
+      }
+    }
+  } else {
+    for(const i in servers) {
+      if(servers[i] === server) {
+        return servers[i].pid;
+      }
+    }
+  }
+
+  throw new Error(`This server does not exists ${server}`);
 }

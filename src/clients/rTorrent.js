@@ -64,7 +64,7 @@ module.exports.resume = async(hash) => {
 	return methodCall('d.resume', [hash]);
 };
 
-module.exports.delete = async(hash) => {
+module.exports.remove = async(hash) => {
 	return methodCall('d.erase', [hash]);
 };
 
