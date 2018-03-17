@@ -1,5 +1,3 @@
-'use strict';
-
 const debug = require('debug');
 const parseTorrent = require('parse-torrent');
 const nt = require('nt');
@@ -45,11 +43,13 @@ module.exports.addWebHook = (url, callback) => {
 module.exports.removeWebhHook = (url) => {
 	listenerHandler.removeWebhHook(url);
 };
+
 /**
  * Get all torrent
  * @return {Promise.<*>}
  */
-module.exports.getAll = async(pid) => {
+module.exports.getAll = async(server) => {
+  const pid = getPidFromServer(server);
 	return torrentHandler.getAll(pid);
 };
 
@@ -219,7 +219,6 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) =
 		throw new Error('files failed');
 	}
 };
-
 
 /**
  * TODO : To test

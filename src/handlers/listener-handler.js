@@ -59,6 +59,41 @@ class ListenerHandler {
       this.webhooks.splice(this.webhooks.indexOf(url), 1);
     }
   }
+
+  /**
+   * Send request to web hooks
+   * @param event
+   * @param torrent
+   */
+  sendWebHook(event, torrent) {
+    for (const i in this.webhooks) {
+      const req = hh.request({
+        method: 'POST',
+        port: this.webhooks[i].url.port,
+        protocol: this.webhooks[i].url.protocol,
+        hostname: this.webhooks[i].url.hostname,
+        path: this.webhooks[i].url.path,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      }, (res) => {
+        if(res.statusCode < 200 || res.statusCode > 299) {
+          res.on('data', (body) => {
+            this.webhooks[i].callback.onFailed(this.webhooks[i].url, res.statusCode, body.toString(), res.headers);
+          });
+        }
+      });
+      req.on('error', (e) => {
+        this.webhooks[i].callback.onError(this.webhooks[i].url, e);
+      });
+      req.write(JSON.stringify({
+        entity: 'torrent',
+        event,
+        torrent
+      }));
+      req.end();
+    }
+  }
 }
 
 module.exports.ListenerHandler = ListenerHandler;
@@ -71,39 +106,3 @@ module.exports.EVENT = {
 	RESUMED: 'resumed',
 	PAUSED: 'paused',
 };
-
-/**
- * Send request to web hooks
- * @param event
- * @param torrent
- */
-function sendWebHook(event, torrent) {
-
-	for (const i in webhooks) {
-		const req = hh.request({
-			method: 'POST',
-			port: webhooks[i].url.port,
-			protocol: webhooks[i].url.protocol,
-			hostname: webhooks[i].url.hostname,
-			path: webhooks[i].url.path,
-			headers: {
-				'Content-Type': 'application/json'
-			},
-		}, (res) => {
-			if(res.statusCode < 200 || res.statusCode > 299) {
-				res.on('data', (body) => {
-					webhooks[i].callback.onFailed(webhooks[i].url, res.statusCode, body.toString(), res.headers);
-				});
-			}
-		});
-		req.on('error', (e) => {
-			webhooks[i].callback.onError(webhooks[i].url, e);
-		});
-		req.write(JSON.stringify({
-			entity: 'torrent',
-			event,
-			torrent
-		}));
-		req.end();
-	}
-}
