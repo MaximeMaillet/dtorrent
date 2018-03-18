@@ -35,6 +35,7 @@ class TorrentHandler {
       this.listener.on(listenerHandler.EVENT.ADDED, torrent);
     } catch(e) {
       // @todo : manager errors
+      console.log(e);
       lError(`Torrent added failed : ${e.message}`);
     }
   }

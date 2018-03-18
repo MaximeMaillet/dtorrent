@@ -77,6 +77,14 @@ module.exports.joinClient = (pid, _client) => {
 function addConfig(config) {
 	lDebug('Check configuration');
 
+	if(!config.root_path) {
+    throw new Error('Config need root_path');
+  }
+
+  if(config.root_path.substr(-1) !== '/') {
+    config.root_path += '/';
+  }
+
 	if(!config) {
 		config = {};
 	}
@@ -84,8 +92,12 @@ function addConfig(config) {
 	const envs = [
 		{name: 'rtorrent_host', default: '127.0.0.1'},
 		{name: 'rtorrent_port', default: '8080'},
-		{name: 'rtorrent_path', default: '/RPC2'}
+		{name: 'rtorrent_path', default: '/RPC2'},
+    {name: 'dir_torrent', default: `${config.root_path}/dtorrent/torrent/`},
+    {name: 'dir_downloaded', default: `${config.root_path}dtorrent/downloaded/`},
+    {name: 'dir_log', default: `${config.root_path}dtorrent/logs/`},
 	];
+
 	for(const i in envs) {
 		if(config && config[envs[i].name]) {
 			process.env[envs[i].name.toUpperCase()] = config[envs[i].name];

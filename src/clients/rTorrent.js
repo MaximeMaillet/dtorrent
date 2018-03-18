@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const xmlrpc = require('xmlrpc');
+const _path = require('path');
 
 module.exports.list = async(details) => {
 	if(!details) {
@@ -40,6 +41,8 @@ module.exports.getTorrent = async(hash) => {
 	const nbSeeders = await methodCall('d.get_peers_complete', [hash]);
 	const nbLeechers = await methodCall('d.get_peers_accounted', [hash]);
 
+	const path = _path.basename((await methodCall('d.get_loaded_file', [hash])));
+
 	return {
 		hash: hash,
 		name: name,
@@ -48,6 +51,7 @@ module.exports.getTorrent = async(hash) => {
 		uploaded: Number(upTotal),
 		length: Number(sizeBytes),
 		ratio: ratio/1000,
+    path: path,
 		extra: {
 			down_rate: Number(downRate),
 			nb_seeders: Number(nbSeeders),

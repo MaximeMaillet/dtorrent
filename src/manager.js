@@ -137,7 +137,7 @@ module.exports.createFromTorrent = async(torrentFile, server) => {
 		const _torrent = getDataTorrentFromFile(torrentFile);
 
 		if(!torrentHandler.isHashExists(_torrent.infoHash)) {
-			const isMoving = await move(_torrent.info.destination, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
+			const isMoving = await move(_torrent.info.destination, `${process.env.DIR_TORRENT}${_torrent.name}.torrent`);
 
 			if(isMoving) {
         const torrent = new Torrent(_torrent.infoHash);
@@ -199,8 +199,8 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) =
 			torrent.addPid(pid);
 
 			if(!torrentHandler.isExist(torrent)) {
-				await move(dataFile, `${process.env.STORAGE}/dtorrent/downloaded/${_torrent.name}`);
-				await move(torrentFile, `${process.env.STORAGE}/dtorrent/torrent/${_torrent.name}.torrent`);
+				await move(dataFile, `${process.env.DIR_DOWNLOADED}${_torrent.name}`);
+				await move(torrentFile, `${process.env.DIR_TORRENT}${_torrent.name}.torrent`);
 
 				torrent.name = _torrent.name;
 				torrent.finished = true;
@@ -266,8 +266,8 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName,
 			if(err) {
 				reject(err);
 			} else {
-				fs.writeFileSync(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`, _torrent);
-				const t = module.exports.extractTorrentFile(`${process.env.STORAGE}/dtorrent/torrent/${torrentName}.torrent`);
+				fs.writeFileSync(`${process.env.DIR_TORRENT}${torrentName}.torrent`, _torrent);
+				const t = module.exports.extractTorrentFile(`${process.env.DIR_TORRENT}${torrentName}.torrent`);
 				torrent = new Torrent(t.infoHash);
 				torrent.addPid(pid);
 				torrent.name = t.name;
@@ -280,7 +280,7 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName,
 		});
 	})
 		.then(() => {
-			return move(dataFiles[0].path, `${process.env.STORAGE}/dtorrent/downloaded/${torrentName}`);
+			return move(dataFiles[0].path, `${process.env.DIR_DOWNLOADED}${torrentName}`);
 		})
 		.then(() => {
 			return {

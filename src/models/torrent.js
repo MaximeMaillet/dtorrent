@@ -1,5 +1,8 @@
 require('dotenv').config();
 const get = require('lodash.get');
+const fs = require('fs');
+const path = require('path');
+const parseTorrent = require('parse-torrent');
 const {getDataTorrentFromFile} = require('../utils/torrent');
 
 class Torrent {
@@ -37,9 +40,13 @@ class Torrent {
     this.hash = get(torrent, 'infoHash', this.hash);
     this.name = get(torrent, 'name', 'N/A');
     this.total = get(torrent, 'length', 0);
-    this.path = `${process.env.STORAGE}/dtorrent/torrent/${this.name}.torrent`;
+    this.path = get(torrent, 'path', null);
 
-    const dataFiles = getDataTorrentFromFile(this.path);
+    if(this.path !== null) {
+      this.path = `${process.env.DIR_TORRENT}${this.path}`;
+    }
+
+    const dataFiles = getDataTorrentFromFile(path.resolve(this.path));
     this.files = this.getFiles(dataFiles.files);
 
     this.downloaded = get(torrent, 'downloaded', this.downloaded);
@@ -63,7 +70,7 @@ class Torrent {
     for(const i in buffer) {
       arrayReturn.push({
         name: buffer[i].name,
-        path: `${process.env.STORAGE}/dtorrent/downloaded/${buffer[i].path}`,
+        path: `${process.env.DIR_DOWNLOADED}${buffer[i].path}`,
       });
     }
 
