@@ -138,6 +138,7 @@ module.exports.createFromTorrent = async(torrentFile, server) => {
 
 		if(!torrentHandler.isHashExists(_torrent.infoHash)) {
 			const isMoving = await move(_torrent.info.destination, `${process.env.DIR_TORRENT}${_torrent.name}.torrent`);
+			_torrent['path'] = `${_torrent.name}.torrent`;
 
 			if(isMoving) {
         const torrent = new Torrent(_torrent.infoHash);
