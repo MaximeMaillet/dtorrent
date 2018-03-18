@@ -47,7 +47,7 @@ module.exports.removeWebhHook = (url) => {
  * @return {Promise.<*>}
  */
 module.exports.getAll = async(server) => {
-  const pid = getPidFromServer(server);
+  const pid = module.exports.getPidFromServer(server);
 	return torrentHandler.getAll(pid);
 };
 
@@ -131,7 +131,7 @@ module.exports.extractTorrentFile = (torrentFile) => {
  * @param server
  */
 module.exports.createFromTorrent = async(torrentFile, server) => {
-  const pid = getPidFromServer(server);
+  const pid = modue.exports.getPidFromServer(server);
 
 	try {
 		const _torrent = getDataTorrentFromFile(torrentFile);
@@ -182,7 +182,7 @@ module.exports.createFromTorrent = async(torrentFile, server) => {
  * @return {Promise.<*>}
  */
 module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) => {
-  const pid = getPidFromServer(server);
+  const pid = module.exports.getPidFromServer(server);
   let success = null;
   try {
     success = await checkTorrentIntegrity(torrentFile, dataFile);
@@ -239,7 +239,7 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) =
  * @return {Promise.<void>}
  */
 module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName, server) => {
-  const pid = getPidFromServer(server);
+  const pid = module.exports.getPidFromServer(server);
 
 	if(dataFiles.length === 0) {
 		throw new Error('You should upload at least one file');
@@ -362,7 +362,7 @@ function move(file, targetDirectory) {
  * @param server
  * @return {null}
  */
-function getPidFromServer(server) {
+module.exports.getPidFromServer = (server) => {
   if(typeof server === 'string') {
     for(const i in servers) {
       if(servers[i].server_name === server) {
@@ -377,7 +377,19 @@ function getPidFromServer(server) {
     }
   }
 
-  console.log(servers);
+  throw new Error(`This server does not exists ${server}`);
+};
+
+/**
+ * @param server
+ * @return {null}
+ */
+module.exports.getServerFromPid = (pid) => {
+  for(const i in servers) {
+    if(servers[i] === server) {
+      return servers[i].pid;
+    }
+  }
 
   throw new Error(`This server does not exists ${server}`);
-}
+};

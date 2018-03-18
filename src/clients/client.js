@@ -81,3 +81,14 @@ module.exports.open = async(pid, hash) => {
     }
   }
 };
+
+module.exports.addCustom = async(pid, hash, data) => {
+  const client = getClient(pid);
+  if(client) {
+    if (client.addCustom) {
+      return client.addCustom(hash, data);
+    } else {
+      throw new Error('Your client has not function addCustom(hash)');
+    }
+  }
+};

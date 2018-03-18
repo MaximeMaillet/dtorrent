@@ -42,11 +42,7 @@ class Torrent {
     this.total = get(torrent, 'length', 0);
     this.path = get(torrent, 'path', null);
 
-    if(this.path !== null) {
-      this.path = `${process.env.DIR_TORRENT}${this.path}`;
-    }
-
-    const dataFiles = getDataTorrentFromFile(path.resolve(this.path));
+    const dataFiles = getDataTorrentFromFile(path.resolve(process.env.DIR_TORRENT+this.path));
     this.files = this.getFiles(dataFiles.files);
 
     this.downloaded = get(torrent, 'downloaded', this.downloaded);
@@ -70,7 +66,7 @@ class Torrent {
     for(const i in buffer) {
       arrayReturn.push({
         name: buffer[i].name,
-        path: `${process.env.DIR_DOWNLOADED}${buffer[i].path}`,
+        path: buffer[i].path,
       });
     }
 
@@ -117,6 +113,7 @@ class Torrent {
 
   toString() {
     return {
+      pid: this.pid,
       hash: this.hash,
       name: this.name,
       active: this.active,

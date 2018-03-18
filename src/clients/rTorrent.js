@@ -41,7 +41,11 @@ module.exports.getTorrent = async(hash) => {
 	const nbSeeders = await methodCall('d.get_peers_complete', [hash]);
 	const nbLeechers = await methodCall('d.get_peers_accounted', [hash]);
 
+	/** torrent file name */
 	const path = _path.basename((await methodCall('d.get_loaded_file', [hash])));
+
+	/** Cutom data */
+	const custom = await methodCall('d.get_custom1', [hash]);
 
 	return {
 		hash: hash,
@@ -53,11 +57,16 @@ module.exports.getTorrent = async(hash) => {
 		ratio: ratio/1000,
     path: path,
 		extra: {
+      custom: custom,
 			down_rate: Number(downRate),
 			nb_seeders: Number(nbSeeders),
 			nb_leechers: Number(nbLeechers),
 		},
 	};
+};
+
+module.exports.addCustom = async(hash, data) => {
+  return methodCall('d.set_custom1', [hash, data]);
 };
 
 module.exports.pause = async(hash) => {
@@ -83,7 +92,7 @@ function getClient() {
 	return xmlrpc.createClient({
 		host: process.env.RTORRENT_HOST || '127.0.0.1',
 		port: process.env.RTORRENT_PORT || 8080,
-		path: process.env.RTORRENT_PATH || '/RPC2',
+		path: '/RPC2',
 		encoding: 'UTF-8'
 	});
 }
