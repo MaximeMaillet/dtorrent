@@ -13,7 +13,7 @@ const servers = [];
 const workerList = require('./src/workers/list');
 const client = require('./src/clients/client');
 
-let staticPID = 0;
+let staticPID = 1;
 
 /**
  * @return {Promise.<exports>}

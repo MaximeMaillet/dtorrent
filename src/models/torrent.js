@@ -11,7 +11,7 @@ class Torrent {
       'downloaded', 'uploaded', 'ratio'
     ];
 
-    this.pid = null;
+    this.pid = get(torrent, 'pid', null);
     this.hash = hash;
     this.name= get(torrent, 'name', null);
     this.active= false;
@@ -28,7 +28,7 @@ class Torrent {
   }
 
   addPid(pid) {
-    this.pid = pid;
+    this.pid = parseInt(pid);
   }
 
   /**

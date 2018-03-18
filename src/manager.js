@@ -131,7 +131,7 @@ module.exports.extractTorrentFile = (torrentFile) => {
  * @param server
  */
 module.exports.createFromTorrent = async(torrentFile, server) => {
-  const pid = modue.exports.getPidFromServer(server);
+  const pid = module.exports.getPidFromServer(server);
 
 	try {
 		const _torrent = getDataTorrentFromFile(torrentFile);
