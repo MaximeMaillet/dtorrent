@@ -8,17 +8,12 @@ const fs = require('fs');
  */
 function getDataTorrentFromFile(torrentFile) {
   if(!fs.existsSync(torrentFile)) {
-    return {};
+    throw new Error(`This torrent file does not exists : ${torrentFile}`);
   }
 
   const torrent = parseTorrent(fs.readFileSync(torrentFile));
-  let l = 0;
-  for(const j in torrent.info.files) {
-    l += torrent.info.files[j].length;
-  }
-  torrent.info.total_size = l;
-  torrent.info.destination = torrentFile;
-  torrent.infoHash = torrent.infoHash.toUpperCase();
+  torrent.path = torrentFile;
+  torrent.hash = torrent.infoHash.toUpperCase();
   return torrent;
 }
 

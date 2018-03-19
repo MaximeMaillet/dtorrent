@@ -44,25 +44,21 @@ module.exports.getTorrent = async(hash) => {
 	/** torrent file name */
 	const path = _path.basename((await methodCall('d.get_loaded_file', [hash])));
 
-	/** Cutom data */
-	const custom = await methodCall('d.get_custom1', [hash]);
-
-	return {
-		hash: hash,
-		name: name,
-		active: isActive === '1',
-		downloaded: Number(completedByte),
-		uploaded: Number(upTotal),
-		length: Number(sizeBytes),
-		ratio: ratio/1000,
+  return {
+    hash: hash,
+    name: name,
+    active: isActive === '1',
+    downloaded: Number(completedByte),
+    uploaded: Number(upTotal),
+    length: Number(sizeBytes),
     path: path,
-		extra: {
-      custom: custom,
-			down_rate: Number(downRate),
-			nb_seeders: Number(nbSeeders),
-			nb_leechers: Number(nbLeechers),
-		},
-	};
+    extra: {
+        ratio: ratio/1000,
+        down_rate: Number(downRate),
+        nb_seeders: Number(nbSeeders),
+        nb_leechers: Number(nbLeechers),
+    },
+  };
 };
 
 module.exports.addCustom = async(hash, data) => {

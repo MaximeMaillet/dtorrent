@@ -45,6 +45,11 @@ class ListenerHandler {
           }
           this.sendWebHook(event, torrent.toString());
           break;
+        case module.exports.EVENT.ERROR:
+          if(this.listeners[i].onError) {
+            this.listeners[i].onError(extra);
+          }
+          break;
       }
     }
   }
@@ -117,4 +122,5 @@ module.exports.EVENT = {
 	FINISHED: 'finished',
 	RESUMED: 'resumed',
 	PAUSED: 'paused',
+  ERROR: 'error',
 };

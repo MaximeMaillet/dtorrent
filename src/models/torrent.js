@@ -1,32 +1,33 @@
 require('dotenv').config();
 const get = require('lodash.get');
-const fs = require('fs');
 const path = require('path');
-const parseTorrent = require('parse-torrent');
 const {getDataTorrentFromFile} = require('../utils/torrent');
+const servers = require('../../index');
 
 class Torrent {
-  constructor(hash, torrent) {
+  constructor(hash) {
     this.watchedKeys = [
-      'downloaded', 'uploaded', 'ratio'
+      'downloaded', 'uploaded', 'active'
     ];
 
-    this.pid = get(torrent, 'pid', null);
     this.hash = hash;
-    this.name= get(torrent, 'name', null);
-    this.active= false;
-    this.finished= false;
-    this.playing= false;
-    this.progress= 0;
-    this.downloaded= 0;
-    this.uploaded= 0;
-    this.total= get(torrent, 'total', 0);
-    this.ratio= 0;
-    this.extra= {};
-    this.path= get(torrent, 'path', '');
-    this.files = get(torrent, 'files', []);
+    this.name = 'N/A';
+    this.length = 0;
+    this.active = false;
+    this.downloaded = 0;
+    this.uploaded = 0;
+    this.extra = {};
+    this.path = '';
+
+    this.ratio = 0;
+    this.finished = false;
+    this.progress = 0;
+    this.files = [];
   }
 
+  /**
+   * @param pid
+   */
   addPid(pid) {
     this.pid = parseInt(pid);
   }
@@ -37,24 +38,33 @@ class Torrent {
    * @return {Torrent}
    */
   merge(torrent, shouldUpdate) {
-    this.hash = get(torrent, 'infoHash', this.hash);
-    this.name = get(torrent, 'name', 'N/A');
-    this.total = get(torrent, 'length', 0);
-    this.path = get(torrent, 'path', null);
-
-    const dataFiles = getDataTorrentFromFile(path.resolve(process.env.DIR_TORRENT+this.path));
-    this.files = this.getFiles(dataFiles.files);
-
+    this.hash = get(torrent, 'hash', this.hash);
+    this.name = get(torrent, 'name', this.name);
+    this.length = get(torrent, 'length', this.length);
+    this.path = get(torrent, 'path', this.path);
     this.downloaded = get(torrent, 'downloaded', this.downloaded);
     this.uploaded = get(torrent, 'uploaded', this.uploaded);
-    this.ratio = get(torrent, 'ratio', this.ratio);
     this.extra = get(torrent, 'extra', this.extra);
+    this.active = get(torrent, 'active', this.active);
 
     torrent = null;
     if(shouldUpdate) {
       this.update();
     }
     return this;
+  }
+
+  /**
+   * Update volatile attributes
+   */
+  update() {
+    const dataFiles = getDataTorrentFromFile(path.resolve(process.env.DIR_TORRENT+this.path));
+    this.files = this.getFiles(dataFiles.files);
+
+    this.progress = Math.round((this.downloaded*100) / this.length);
+    this.finished = this.progress === 100;
+
+    this.ratio = (this.uploaded / this.downloaded).toFixed(4);
   }
 
   /**
@@ -67,6 +77,7 @@ class Torrent {
       arrayReturn.push({
         name: buffer[i].name,
         path: buffer[i].path,
+        length: buffer[i].length,
       });
     }
 
@@ -88,44 +99,24 @@ class Torrent {
   }
 
   /**
-   * @param torrent
-   * @param diff
+   * Formated displaying
+   * @return {{hash: *, name: (string|*), active: (boolean|*), downloaded: (number|*), uploaded: (number|*), length: (number|*), path: (string|*), extra: *, ratio: (number|*), finished: (boolean|*), files: (Array|*), progress: (number|*), pid: (Number|*), total: (number|*)}}
    */
-  updateDiff(torrent, diff) {
-    if(diff.indexOf('downloaded') !== -1 || diff.indexOf('uploaded') !== -1) {
-      this.active = true;
-    }
-
-    if(diff.indexOf('ratio') !== -1) {
-      this.ratio = torrent.ratio;
-    }
-
-    this.update();
-  }
-
-  update() {
-    this.progress = Math.round((this.downloaded*100) / this.total);
-
-    if(this.progress === 100) {
-      this.finished = true;
-    }
-  }
-
   toString() {
+    const server = servers.getServer(this.pid);
     return {
-      pid: this.pid,
+      server: server.config.name,
       hash: this.hash,
       name: this.name,
       active: this.active,
-      finished: this.finished,
-      playing: this.playing,
-      progress: this.progress,
       downloaded: this.downloaded,
       uploaded: this.uploaded,
-      total: this.total,
-      ratio: this.ratio,
-      extra: this.extra,
+      length: this.length,
       path: this.path,
+      extra: this.extra,
+      progress: this.progress,
+      ratio: this.ratio,
+      finished: this.finished,
       files: this.files,
     };
   }

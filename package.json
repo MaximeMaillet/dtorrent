@@ -1,10 +1,10 @@
 {
   "name": "dtorrent",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "Listener for rTorrent",
   "repository": {
     "type": "git",
-    "url": "https://gitlab.deuxmax.fr/torrent/dtorrent"
+    "url": "https://github.com/MaximeMaillet/dtorrent"
   },
   "main": "index.js",
   "scripts": {
@@ -15,21 +15,15 @@
     "listener"
   ],
   "author": "2Max <maxime.maillet93@gmail.com>",
-  "license": "GNU General Public License v3.0",
+  "license": "GPL-3.0",
   "dependencies": {
-    "bluebird": "^3.5.1",
-    "body-parser": "^1.18.2",
     "create-torrent": "^3.30.0",
     "debug": "^2.6.8",
     "dotenv": "^4.0.0",
-    "express": "^4.16.2",
     "http-https": "^1.0.0",
-    "mongoose": "^4.13.7",
-    "multer": "^1.3.0",
+    "lodash.get": "^4.4.2",
     "nt": "^0.6.0",
     "parse-torrent": "^5.8.3",
-    "rand-token": "^0.3.0",
-    "watch-object": "^1.1.2",
     "xmlrpc": "^1.3.2"
   }
 }

@@ -1,33 +1,10 @@
-# dTorrent
+# dTorrent - 0.5.0
 
 Listen your favorite client bitTorrent.
 
-dTorrent launch, every interval, request for check all torrents and compare with actual state for return changes.
+dTorrent launch, every interval, request for check all torrents states and compare with actual state for return changes.
 
-#### Features
-
-* Listener on events :
-    * Torrent added
-    * Torrent updated
-    * Torrent finished
-    * Torrent removed
-    * Torrent paused & resumed
-* Web hook on :
-    * torrent added 
-    * torrent finished
-    * torrent removed
-    * torrent paused
-    * torrent resumed
-* Manager for 
-    * add torrent + file data, add torrent file, add data (and create .torrent)
-    * get details about one torrent
-    * get list of all torrents
-    * play & resume
-    * delete
-    
-### Todo
-
-* Clear rtorrent session (when manually delete torrent)
+You can listen one or most server according to configure your client and your torrent server accept XML RPC request.
 
 ## Install
 
@@ -37,29 +14,26 @@ npm install dtorrent --save
 
 ## Usage
 
-Create index.js and write this :
-
 ```js
 const dtorrent = require('dtorrent');
 
-const dConfig = {
-  rtorrent_host: '127.0.0.1', // IP of client torrent
-  rtorrent_port: 8092, // Port of client torrent
-  rtorrent_path: '/RPC2', // Path to join client torrent via XML RPC
-  interval_check: 1500, // Interval for checks
-};
+const dConfig = [
+  {
+    name: 'MyFirstServer',
+    root_path: './data', // Path where stored data
+    rtorrent_host: '127.0.0.1', // Torrent server
+    rtorrent_port: 80, // RPC dialogue
+    interval_check: 1000, // Interval in milliseconds for check torrents on server
+    client: require('./my-custom-client'), // default : rTorrent client include in lib
+  },
+  {
+    name: 'MySecondServer',
+    ...
+  }
+];
 
 // Star dtorrent
 await dtorrent.start(dConfig);
-```
-
-Or, for config :
-
-```.env
-RTORRENT_HOST=127.0.0.1
-RTORRENT_PORT=8092
-RTORRENT_PATH=/RPC2
-INTERVAL_CHECK=1500
 ```
 
 ## Manager
@@ -84,20 +58,23 @@ manager.addListener({
       console.log(`added : ${torrent.hash}`);
     },
     onRemoved: async(torrent) => {
-        console.log(`remove : ${torrent.hash}`);
+      console.log(`remove : ${torrent.hash}`);
     },
     onUpdated: async(torrent, diff) => {
-        console.log(`update : ${torrent.hash}`);
-        console.log(diff);
+      console.log(`update : ${torrent.hash}`);
+      console.log(diff);
     },
     onPaused: async(torrent) => {
-        console.log(`pause : ${torrent.hash}`);
+      console.log(`pause : ${torrent.hash}`);
     },
     onResumed: async(torrent) => {
-        console.log(`resume : ${torrent.hash}`);
+      console.log(`resume : ${torrent.hash}`);
     },
     onFinished: async(torrent) => {
-        console.log(`finish : ${torrent.hash}`);
+      console.log(`finish : ${torrent.hash}`);
+    },
+    onError: async(err) => {
+      // ...
     }
 });
 ```
@@ -105,7 +82,7 @@ manager.addListener({
 
 ```javascript
 const dtorrent = require('dtorrent');
-await dtorrent.start();
+await dtorrent.start({...});
 const manager = await dtorrent.manager();
 manager.addWebHook('https://monhook.com', {
   onFailed: (Url, status, body, headers) => {
@@ -118,6 +95,62 @@ manager.addWebHook('https://monhook.com', {
   }
 });
 ```
+
+## Data formated
+
+*dTorrent return data's torrent with parameter and calculated values*
+
+* hash
+* name
+* active : active or not (downloading / uploading)
+* downloaded : size already downloaded
+* uploaded : size already uploaded
+* length : total size 
+* path : name of torrent file (my-torrent.torrent)
+* extra
+* ratio
+* finished
+* files : list of files in torrent
+* progress
+
+## Write your own client wrapper
+
+### Method to implementate
+
+* `list()` : send a hash's list of currents torrents
+
+* `getTorrent(hash)` : send details about torrent
+  * Attributes required : 
+        * hash
+        * name
+        * active : active or not (downloading / uploading)
+        * downloaded : size already downloaded
+        * uploaded : size already uploaded
+        * length : total size 
+        * path : name of torrent file (my-torrent.torrent)
+        * extra : (optional) for custom fields
+
+* `pause(hash)` : put torrent in pause
+
+* `resume(hash)` : put torrent in resume
+
+* `remove(hash)` : remove torrent
+
+### Add in config
+
+```javascript
+const dConfig = [
+  {
+      client: require('./monclient.js'),
+      ...,
+  }
+];
+
+await dtorrent.start(dConfig);
+```
+
+Refer to [default client](https://github.com/MaximeMaillet/dtorrent/blob/master/src/clients/rTorrent.js) for more informations
+
 
 ## Client compatibilities
 
@@ -221,8 +254,6 @@ dtach for launch as deamon : https://doc.ubuntu-fr.org/rtorrent#rtorrent_en_daem
 
 [Documentation](https://github.com/MaximeMaillet/rtorrent-daemon)
 
-
-[Example]() @TODO
 
 ## License
 

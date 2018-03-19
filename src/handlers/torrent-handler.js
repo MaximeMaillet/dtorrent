@@ -12,6 +12,12 @@ class TorrentHandler {
     this.torrents = [];
   }
 
+  /**
+   * Handle torrent from worker
+   * @param hash
+   * @param pid
+   * @return {Promise.<void>}
+   */
   async handle(hash, pid) {
     try {
       if(this.isHashExists(hash)) {
@@ -23,36 +29,60 @@ class TorrentHandler {
         this.add(torrent);
       }
     } catch(e) {
-      lError(`Fail 'handle' (${hash}) : ${e.message}`);
+      this.listener.on(listenerHandler.EVENT.ERROR, null, {
+        message: 'Fail handle torrent',
+        error: e
+      });
     }
   }
 
+  /**
+   * @param torrent
+   * @return {Promise.<void>}
+   */
   async add(torrent) {
     try {
-      torrent.merge((await clientTorrent.getTorrent(torrent.pid, torrent.hash)), true);
+      const newTorrent = (await clientTorrent.getTorrent(torrent.pid, torrent.hash));
+      TorrentHandler.checkRequiredAttributes(newTorrent);
+      torrent.merge(newTorrent, true);
       this.torrents.push(torrent);
       lDebug(`[${torrent.pid}] Torrent added ${torrent.hash}`);
       this.listener.on(listenerHandler.EVENT.ADDED, torrent);
+      if(torrent.finished) {
+        this.listener.on(listenerHandler.EVENT.FINISHED, torrent);
+      }
     } catch(e) {
-      // @todo : manager errors
-      console.log(e);
-      lError(`Torrent added failed : ${e.message}`);
+      this.listener.on(listenerHandler.EVENT.ERROR, null, {
+        message: 'Fail add torrent',
+        error: e
+      });
     }
   }
 
+  /**
+   * @param original
+   * @return {Promise.<void>}
+   */
   async update(original) {
-    const torrent = (await clientTorrent.getTorrent(original.pid, original.hash));
-    const diff = original.getDiff(torrent);
-    original.merge(torrent, false);
-    original.updateDiff(torrent, diff);
+    try {
+      const torrent = (await clientTorrent.getTorrent(original.pid, original.hash));
+      TorrentHandler.checkRequiredAttributes(torrent);
+      const diff = original.getDiff(torrent);
+      original.merge(torrent, true);
 
-    if(diff.length > 0) {
-      lDebug(`[${original.pid}] Torrent updated : ${original.hash} : ${diff.join(',')}`);
-      this.listener.on(listenerHandler.EVENT.UPDATED, original, diff);
+      if(diff.length > 0) {
+        lDebug(`[${original.pid}] Torrent updated : ${original.hash} : ${diff.join(',')}`);
+        this.listener.on(listenerHandler.EVENT.UPDATED, original, diff);
 
-      if(diff.indexOf('downloaded') !== -1 && original.finished) {
-        this.listener.on(listenerHandler.EVENT.FINISHED, original);
+        if(diff.indexOf('downloaded') !== -1 && original.finished) {
+          this.listener.on(listenerHandler.EVENT.FINISHED, original);
+        }
       }
+    } catch(e) {
+      this.listener.on(listenerHandler.EVENT.ERROR, null, {
+        message: 'Faile update torrent',
+        error: e
+      });
     }
   }
 
@@ -69,6 +99,21 @@ class TorrentHandler {
     }
 
     return false;
+  }
+
+  static checkRequiredAttributes(torrent) {
+    const requiredAttributes = ['hash', 'name', 'length', 'active', 'downloaded', 'uploaded', 'path'];
+    const attributesMissing = [];
+
+    for(const i in requiredAttributes) {
+      if(!torrent.hasOwnProperty(requiredAttributes[i])) {
+        attributesMissing.push(requiredAttributes[i]);
+      }
+    }
+
+    if(attributesMissing.length > 0) {
+      throw new Error(`Attributes are missings : ${attributesMissing.join(',')}`);
+    }
   }
 
   /**
@@ -139,7 +184,6 @@ class TorrentHandler {
 
     try {
       await clientTorrent.pause(torrent.pid, torrent.hash);
-      torrent.playing = false;
       torrent.active = false;
       this.listener.on(listenerHandler.EVENT.PAUSED, torrent);
       return torrent;

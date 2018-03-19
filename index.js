@@ -15,6 +15,17 @@ const client = require('./src/clients/client');
 
 let staticPID = 1;
 
+
+module.exports.getServer = (pid) => {
+  for(const i in servers) {
+    if(servers[i].pid === pid) {
+      return servers[i];
+    }
+  }
+
+  return null;
+};
+
 /**
  * @return {Promise.<exports>}
  */
@@ -64,6 +75,7 @@ module.exports.start = async(config) => {
 };
 
 /**
+ * @param pid
  * @param _client
  */
 module.exports.joinClient = (pid, _client) => {
