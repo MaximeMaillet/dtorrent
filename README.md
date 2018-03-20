@@ -102,16 +102,17 @@ manager.addWebHook('https://monhook.com', {
 
 * hash
 * name
-* active : active or not (downloading / uploading)
+* active : active or not (ready to upload or download)
 * downloaded : size already downloaded
 * uploaded : size already uploaded
 * length : total size 
 * path : name of torrent file (my-torrent.torrent)
 * extra
+* progress
 * ratio
 * finished
+* playing : when torrent is uploading or downloading
 * files : list of files in torrent
-* progress
 
 ## Write your own client wrapper
 

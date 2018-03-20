@@ -23,6 +23,7 @@ class Torrent {
     this.finished = false;
     this.progress = 0;
     this.files = [];
+    this.playing = false;
   }
 
   /**
@@ -34,10 +35,10 @@ class Torrent {
 
   /**
    * @param torrent
-   * @param shouldUpdate
+   * @param diff
    * @return {Torrent}
    */
-  merge(torrent, shouldUpdate) {
+  merge(torrent, diff) {
     this.hash = get(torrent, 'hash', this.hash);
     this.name = get(torrent, 'name', this.name);
     this.length = get(torrent, 'length', this.length);
@@ -48,16 +49,14 @@ class Torrent {
     this.active = get(torrent, 'active', this.active);
 
     torrent = null;
-    if(shouldUpdate) {
-      this.update();
-    }
+    this.update(diff);
     return this;
   }
 
   /**
    * Update volatile attributes
    */
-  update() {
+  update(diff) {
     const dataFiles = getDataTorrentFromFile(path.resolve(process.env.DIR_TORRENT+this.path));
     this.files = this.getFiles(dataFiles.files);
 
@@ -65,6 +64,16 @@ class Torrent {
     this.finished = this.progress === 100;
 
     this.ratio = (this.uploaded / this.downloaded).toFixed(4);
+
+    if(
+      diff && diff.length > 0 &&
+      this.active &&
+      (diff.indexOf('downloaded') !== -1 || diff.indexOf('uploaded') !== -1)
+    ) {
+        this.playing = true;
+    } else {
+      this.playing = false;
+    }
   }
 
   /**
@@ -117,6 +126,7 @@ class Torrent {
       progress: this.progress,
       ratio: this.ratio,
       finished: this.finished,
+      playing: this.playing,
       files: this.files,
     };
   }

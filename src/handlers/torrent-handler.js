@@ -44,7 +44,7 @@ class TorrentHandler {
     try {
       const newTorrent = (await clientTorrent.getTorrent(torrent.pid, torrent.hash));
       TorrentHandler.checkRequiredAttributes(newTorrent);
-      torrent.merge(newTorrent, true);
+      torrent.merge(newTorrent);
       this.torrents.push(torrent);
       lDebug(`[${torrent.pid}] Torrent added ${torrent.hash}`);
       this.listener.on(listenerHandler.EVENT.ADDED, torrent);
@@ -68,7 +68,7 @@ class TorrentHandler {
       const torrent = (await clientTorrent.getTorrent(original.pid, original.hash));
       TorrentHandler.checkRequiredAttributes(torrent);
       const diff = original.getDiff(torrent);
-      original.merge(torrent, true);
+      original.merge(torrent, diff);
 
       if(diff.length > 0) {
         lDebug(`[${original.pid}] Torrent updated : ${original.hash} : ${diff.join(',')}`);
