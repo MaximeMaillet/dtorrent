@@ -2,6 +2,35 @@ require('dotenv').config();
 
 const xmlrpc = require('xmlrpc');
 const _path = require('path');
+let client = null;
+
+module.exports.init = (credentials) => {
+	if(!client) {
+		client = xmlrpc.createClient({
+			host: credentials.host,
+			port: credentials.port,
+			path: credentials.endpoint,
+			encoding: 'UTF-8'
+		});
+	}
+};
+
+/**
+ * @param method
+ * @param params
+ * @return {Promise}
+ */
+function methodCall(method, params) {
+	return new Promise((resolve, reject) => {
+		client.methodCall(method, params, (error, result) => {
+			if(error) {
+				reject(error);
+			} else {
+				resolve(result);
+			}
+		});
+	});
+}
 
 module.exports.list = async(details) => {
 	if(!details) {
@@ -18,31 +47,31 @@ module.exports.list = async(details) => {
 
 module.exports.getTorrent = async(hash) => {
 	/** Check data already downloaded */
-	const completedByte = await methodCall('d.get_completed_bytes', [hash]);
+	const completedByte = await methodCall('d.completed_bytes', [hash]);
 
 	/** Total size of torrent */
-	const sizeBytes = await methodCall('d.get_size_bytes', [hash]);
+	const sizeBytes = await methodCall('d.size_bytes', [hash]);
 
 	/** Check rate downloaded (speed download) */
-	const downRate = await methodCall('d.get_down_rate', [hash]);
+	const downRate = await methodCall('d.down.rate', [hash]);
 
 	/** Check size uploaded */
-	const upTotal = await methodCall('d.get_up_total', [hash]);
+	const upTotal = await methodCall('d.up.total', [hash]);
 
 	/** Check if torrent is playing or not */
 	const isActive = await methodCall('d.is_active', [hash]);
 
 	/** Get name */
-	const name = await methodCall('d.get_name', [hash]);
+	const name = await methodCall('d.name', [hash]);
 
 	/** Get ration up/down */
-	const ratio = await methodCall('d.get_ratio', [hash]);
+	const ratio = await methodCall('d.ratio', [hash]);
 
-	const nbSeeders = await methodCall('d.get_peers_complete', [hash]);
-	const nbLeechers = await methodCall('d.get_peers_accounted', [hash]);
+	const nbSeeders = await methodCall('d.peers_complete', [hash]);
+	const nbLeechers = await methodCall('d.peers_accounted', [hash]);
 
 	/** torrent file name */
-	const path = _path.basename((await methodCall('d.get_loaded_file', [hash])));
+	const path = _path.basename((await methodCall('d.loaded_file', [hash])));
 
   return {
     hash: hash,
@@ -80,32 +109,3 @@ module.exports.remove = async(hash) => {
 module.exports.open = async(hash) => {
 	return methodCall('d.open', [hash]);
 };
-
-/**
- * @return {*}
- */
-function getClient() {
-	return xmlrpc.createClient({
-		host: process.env.RTORRENT_HOST || '127.0.0.1',
-		port: process.env.RTORRENT_PORT || 8080,
-		path: '/RPC2',
-		encoding: 'UTF-8'
-	});
-}
-
-/**
- * @param method
- * @param params
- * @return {Promise}
- */
-function methodCall(method, params) {
-	return new Promise((resolve, reject) => {
-		getClient().methodCall(method, params, (error, result) => {
-			if(error) {
-				reject(error);
-			} else {
-				resolve(result);
-			}
-		});
-	});
-}

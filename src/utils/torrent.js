@@ -16,7 +16,13 @@ function getDataTorrentFromFile(torrentFile) {
   torrent.hash = torrent.infoHash.toUpperCase();
   return torrent;
 }
+function getDataTorrentFromMetaData(metaData) {
+  const torrent = parseTorrent(metaData);
+  torrent.hash = torrent.infoHash.toUpperCase();
+  return torrent;
+}
 
 module.exports = {
   getDataTorrentFromFile,
+  getDataTorrentFromMetaData,
 };

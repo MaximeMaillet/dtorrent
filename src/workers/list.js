@@ -13,10 +13,11 @@ const clientTorrent = require('../clients/client');
  */
 module.exports.start = async(torrentHandler, config) => {
 	lDebug(`${config.name} : Start worker list`);
-	list(torrentHandler, config);
+	await clientTorrent.init(config.pid, config);
+	await list(torrentHandler, config);
 
-	setInterval(() => {
-		list(torrentHandler, config);
+	setInterval(async() => {
+		await list(torrentHandler, config);
 	}, config.interval_check);
 };
 

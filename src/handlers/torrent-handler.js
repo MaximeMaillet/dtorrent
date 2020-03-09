@@ -52,6 +52,7 @@ class TorrentHandler {
         this.listener.on(listenerHandler.EVENT.FINISHED, torrent);
       }
     } catch(e) {
+      console.log(e)
       this.listener.on(listenerHandler.EVENT.ERROR, null, {
         message: 'Fail add torrent',
         error: e

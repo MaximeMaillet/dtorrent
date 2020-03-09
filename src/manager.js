@@ -10,35 +10,34 @@ const {getDataTorrentFromFile} = require('./utils/torrent');
 const lDebug = debug('dTorrent:manager:debug');
 let listenerHandler, torrentHandler, servers = null;
 
+const listener = require('./handlers/listener');
+
 /**
  * Init manager
- * @param _listenerHandler
- * @param _torrentHandler
- * @param _servers
+ * @param servers
  */
-module.exports = (_listenerHandler, _torrentHandler, _servers) => {
-    lDebug('Initialize manager');
-    listenerHandler = _listenerHandler;
-    torrentHandler = _torrentHandler;
-    servers = _servers;
+module.exports = (servers) => {
+	// lDebug('Initialize manager');
+	// listenerHandler = _listenerHandler;
+	// torrentHandler = _torrentHandler;
+	// servers = _servers;
 
-    return module.exports;
-  }
-;
+	return module.exports;
+};
 
 module.exports.addListener = (callback) => {
-	listenerHandler.addListener(callback);
+	listener.addListener(callback);
 };
 
 module.exports.removeListener = (callback) => {
-	listenerHandler.removeListener(callback);
+	listener.removeListener(callback);
 };
 
 module.exports.addWebHook = (url, callback) => {
 	listenerHandler.addWebHook(url, callback);
 };
 
-module.exports.removeWebhHook = (url) => {
+module.exports.removeWebHook = (url) => {
 	listenerHandler.removeWebhHook(url);
 };
 

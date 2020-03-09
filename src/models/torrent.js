@@ -1,7 +1,5 @@
 require('dotenv').config();
 const get = require('lodash.get');
-const path = require('path');
-const {getDataTorrentFromFile} = require('../utils/torrent');
 const servers = require('../../index');
 
 class Torrent {
@@ -57,9 +55,6 @@ class Torrent {
    * Update volatile attributes
    */
   update(diff) {
-    const dataFiles = getDataTorrentFromFile(path.resolve(process.env.DIR_TORRENT+this.path));
-    this.files = this.getFiles(dataFiles.files);
-
     this.progress = Math.round((this.downloaded*100) / this.length);
     this.finished = this.progress === 100;
 
@@ -114,7 +109,7 @@ class Torrent {
   toString() {
     const server = servers.getServer(this.pid);
     return {
-      server: server.config.name,
+      server: server ? server.config.name : null,
       hash: this.hash,
       name: this.name,
       active: this.active,

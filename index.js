@@ -13,8 +13,13 @@ const servers = [];
 const workerList = require('./src/workers/list');
 const client = require('./src/clients/client');
 
-let staticPID = 1;
 
+const serverWorker = require('./src/servers');
+const manager = require('./src/manager');
+const availableClients = ['rtorrent'];
+
+
+let staticPID = 1;
 
 module.exports.getServer = (pid) => {
   for(const i in servers) {
@@ -30,7 +35,7 @@ module.exports.getServer = (pid) => {
  * @return {Promise.<exports>}
  */
 module.exports.manager = async() => {
-	return require('./src/manager')(listenerHandler, torrentHandler, servers);
+	return manager();
 };
 
 /**
@@ -51,35 +56,31 @@ module.exports.fake = async(config) => {
  * @return {Promise.<void>}
  */
 module.exports.start = async(config) => {
-  for(const i in config) {
-    try {
-      config[i] = addConfig(config[i]);
+  try {
+    config = addConfig(config);
 
-      const server = {
-        pid: staticPID++,
-        client,
-        config: config[i],
-      };
+    const serverPID = staticPID++;
+    const server = {
+      pid: serverPID,
+      client,
+      config: config,
+      server_name: config.name || `Server ${serverPID}`
+    };
+    module.exports.joinClient(server);
+    servers.push(server);
+    await serverWorker.start(server);
 
-      module.exports.joinClient(server.pid, config[i].client);
-
-      server.server_name = config[i].name || `Server ${server.pid}`;
-      servers.push(server);
-
-      lDebug(`Start servers ${server.server_name}`);
-      await workerList.start(torrentHandler, Object.assign(config[i], {pid: server.pid}));
-    } catch(e) {
-      lError(`Exception app ${e}`);
-    }
+    return serverPID;
+  } catch(e) {
+    lError(`dTorrentException : ${e}`);
   }
 };
 
 /**
- * @param pid
- * @param _client
+ * @param server
  */
-module.exports.joinClient = (pid, _client) => {
-  client.assign(pid, _client);
+module.exports.joinClient = (server) => {
+  client.assign(server, server.config.clientScript);
 };
 
 /**
@@ -89,47 +90,48 @@ module.exports.joinClient = (pid, _client) => {
 function addConfig(config) {
 	lDebug('Check configuration');
 
-	if(!config.root_path) {
-    throw new Error('Config need root_path');
+  if(!config) {
+    config = {};
   }
 
-  if(config.root_path.substr(-1) !== '/') {
-    config.root_path += '/';
-  }
-
-	if(!config) {
-		config = {};
-	}
-
-	const envs = [
-		{name: 'rtorrent_host', default: '127.0.0.1'},
-		{name: 'rtorrent_port', default: '8080'},
-		{name: 'rtorrent_path', default: '/RPC2'},
-    {name: 'dir_torrent', default: `${config.root_path}dtorrent/torrent/`},
-    {name: 'dir_downloaded', default: `${config.root_path}dtorrent/downloaded/`},
-    {name: 'dir_log', default: `${config.root_path}dtorrent/logs/`},
-	];
-
-	for(const i in envs) {
-		if(config && config[envs[i].name]) {
-			process.env[envs[i].name.toUpperCase()] = config[envs[i].name];
-		} else if(!process.env[envs[i].name.toUpperCase()]) {
-			process.env[envs[i].name.toUpperCase()] = envs[i].default;
-		}
-	}
-
-	const configs = [
+	const defaultConfig = [
 		{name: 'interval_check', default: 1500},
-		{name: 'client', default: require('./src/clients/rTorrent')}
+		{name: 'client', default: 'rtorrent'}
 	];
 
-	for(const i in configs) {
-		if(config && config[configs[i].name]) {
-			config[configs[i].name] = config[configs[i].name];
+	for(let i=0; i<defaultConfig.length; i++) {
+		if(config[defaultConfig[i].name]) {
+		  if(typeof config[defaultConfig[i].name] === 'string') {
+        config[defaultConfig[i].name] = config[defaultConfig[i].name].toLowerCase();
+      } else {
+        config[defaultConfig[i].name] = config[defaultConfig[i].name];
+		  }
 		} else {
-			config[configs[i].name] = configs[i].default;
+			config[defaultConfig[i].name] = defaultConfig[i].default;
 		}
 	}
+
+	if(!config.client) {
+	  throw new Error('[ConfigError] You should add client');
+  }
+
+  if(!config.host) {
+    throw new Error('[ConfigError] You should add host');
+  }
+
+  if(!config.port) {
+    throw new Error('[ConfigError] You should add port');
+  }
+
+  if(!config.endpoint) {
+    throw new Error('[ConfigError] You should add endpoint');
+  }
+
+  if(availableClients.indexOf(config.client) !== -1) {
+    config.clientScript = require(`./src/clients/${config.client}`);
+  } else {
+    throw new Error(`This client is not supported : ${config.client}`);
+  }
 
 	return config;
 }
