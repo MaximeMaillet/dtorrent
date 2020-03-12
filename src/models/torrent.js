@@ -3,11 +3,13 @@ const get = require('lodash.get');
 const servers = require('../../index');
 
 class Torrent {
-  constructor(hash) {
+  constructor(pid, hash) {
     this.watchedKeys = [
       'downloaded', 'uploaded', 'active'
     ];
 
+    this.server = null;
+    this.pid = pid;
     this.hash = hash;
     this.name = 'N/A';
     this.length = 0;
@@ -25,18 +27,12 @@ class Torrent {
   }
 
   /**
-   * @param pid
-   */
-  addPid(pid) {
-    this.pid = parseInt(pid);
-  }
-
-  /**
    * @param torrent
    * @param diff
    * @return {Torrent}
    */
   merge(torrent, diff) {
+    this.server = get(torrent, 'server', this.server);
     this.hash = get(torrent, 'hash', this.hash);
     this.name = get(torrent, 'name', this.name);
     this.length = get(torrent, 'length', this.length);
@@ -57,7 +53,6 @@ class Torrent {
   update(diff) {
     this.progress = Math.round((this.downloaded*100) / this.length);
     this.finished = this.progress === 100;
-
     this.ratio = (this.uploaded / this.downloaded).toFixed(4);
 
     if(
@@ -124,6 +119,13 @@ class Torrent {
       playing: this.playing,
       files: this.files,
     };
+  }
+
+  /**
+   * @returns {string[]}
+   */
+  static requiredAttributes() {
+    return ['hash', 'name', 'length', 'active', 'downloaded', 'uploaded', 'path'];
   }
 }
 

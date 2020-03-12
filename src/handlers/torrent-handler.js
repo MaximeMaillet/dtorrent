@@ -24,8 +24,7 @@ class TorrentHandler {
         const torrent = this.getTorrentFromHash(hash);
         this.update(torrent);
       } else {
-        const torrent = new Torrent(hash);
-        torrent.addPid(pid);
+        const torrent = new Torrent(pid, hash);
         this.add(torrent);
       }
     } catch(e) {

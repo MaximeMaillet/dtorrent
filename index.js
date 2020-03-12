@@ -2,52 +2,33 @@ require('dotenv').config();
 const debug = require('debug');
 const lDebug = debug('dTorrent:app:debug');
 const lError = debug('dTorrent:app:error');
-
-const {ListenerHandler} = require('./src/handlers/listener-handler');
-const {TorrentHandler} = require('./src/handlers/torrent-handler');
-const listenerHandler = new ListenerHandler();
-const torrentHandler = new TorrentHandler(listenerHandler);
-
-const servers = [];
-
-const workerList = require('./src/workers/list');
 const client = require('./src/clients/client');
-
-
 const serverWorker = require('./src/servers');
 const manager = require('./src/manager');
 const availableClients = ['rtorrent'];
-
-
 let staticPID = 1;
-
-module.exports.getServer = (pid) => {
-  for(const i in servers) {
-    if(servers[i].pid === pid) {
-      return servers[i];
-    }
-  }
-
-  return null;
-};
+const servers = [];
 
 /**
  * @return {Promise.<exports>}
  */
-module.exports.manager = async() => {
-	return manager();
-};
-
-/**
- * Launch fake torrent listener
- * @param config
- * @return {Promise.<void>}
- */
-module.exports.fake = async(config) => {
-  for(const i in config) {
-    config[i].client = require('./tests/client/fake');
+module.exports.manager = (serverName) => {
+  const server = servers.filter((srv) => srv.server_name === serverName)[0];
+  if(!server) {
+    // throw new Error(`This server does not exists - ${serverName}`);
+    return {
+      addListener: manager.addListener,
+      removeListener: manager.removeListener,
+      extractTorrentFile: manager.extractTorrentFile,
+    };
   }
-  await module.exports.start(config);
+
+	return {
+	  ...manager,
+    resume: (hash) => manager.resume(server.pid, hash),
+    pause: (hash) => manager.pause(server.pid, hash),
+    remove: (hash) => manager.remove(server.pid, hash),
+  };
 };
 
 /**
@@ -58,16 +39,15 @@ module.exports.fake = async(config) => {
 module.exports.start = async(config) => {
   try {
     config = addConfig(config);
-
     const serverPID = staticPID++;
     const server = {
       pid: serverPID,
-      client,
-      config: config,
-      server_name: config.name || `Server ${serverPID}`
+      server_name: config.name || `Server ${serverPID}`,
+      client: config.clientScript,
+      config,
     };
-    module.exports.joinClient(server);
     servers.push(server);
+    client.create(server);
     await serverWorker.start(server);
 
     return serverPID;
@@ -77,10 +57,18 @@ module.exports.start = async(config) => {
 };
 
 /**
- * @param server
+ * @param pid
+ * @returns {*}
  */
-module.exports.joinClient = (server) => {
-  client.assign(server, server.config.clientScript);
+module.exports.getServer = (pid) => {
+  for(let i=0; i<servers.length; i++) {
+    if(servers[i].pid === pid) {
+      return servers[i];
+    }
+  }
+
+  lError('getServer : This PID does not exists');
+  throw new Error('This PID does not exists');
 };
 
 /**
@@ -135,3 +123,15 @@ function addConfig(config) {
 
 	return config;
 }
+
+/**
+ * Launch fake torrent listener
+ * @param config
+ * @return {Promise.<void>}
+ */
+module.exports.fake = async(config) => {
+  for(const i in config) {
+    config[i].client = require('./tests/client/fake');
+  }
+  await module.exports.start(config);
+};

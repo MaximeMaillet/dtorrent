@@ -8,30 +8,66 @@ const Torrent = require('./models/torrent');
 const {getDataTorrentFromFile} = require('./utils/torrent');
 
 const lDebug = debug('dTorrent:manager:debug');
-let listenerHandler, torrentHandler, servers = null;
+let listenerHandler, servers = null;
 
+
+const torrentHandler = require('./handlers/torrent');
 const listener = require('./handlers/listener');
 
 /**
- * Init manager
- * @param servers
+ * @param callback
  */
-module.exports = (servers) => {
-	// lDebug('Initialize manager');
-	// listenerHandler = _listenerHandler;
-	// torrentHandler = _torrentHandler;
-	// servers = _servers;
-
-	return module.exports;
-};
-
 module.exports.addListener = (callback) => {
 	listener.addListener(callback);
 };
 
+/**
+ * @param callback
+ */
 module.exports.removeListener = (callback) => {
 	listener.removeListener(callback);
 };
+
+/**
+ * Resume torrent
+ * @param pid
+ * @param hash
+ * @return {Promise.<boolean>}
+ */
+module.exports.resume = (pid, hash) => {
+	return torrentHandler.torrent.resume(pid, hash);
+};
+
+/**
+ * Pause torrent
+ * @param pid
+ * @param hash
+ * @return {Promise.<boolean>}
+ */
+module.exports.pause = async(pid, hash) => {
+	return torrentHandler.torrent.pause(pid, hash);
+};
+
+/**
+ * Remove torrent
+ * @param pid
+ * @param hash
+ * @return {Promise.<boolean>}
+ */
+module.exports.remove = async(pid, hash) => {
+	return torrentHandler.torrent.remove(pid, hash);
+};
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports.addWebHook = (url, callback) => {
 	listenerHandler.addWebHook(url, callback);
@@ -63,56 +99,6 @@ module.exports.getOne = async(hash) => {
 	return torrentHandler.getTorrentFromHash(hash);
 };
 
-/**
- * Pause torrent
- * @param hash
- * @return {Promise.<boolean>}
- */
-module.exports.pause = async(hash) => {
-	if(!hash) {
-		throw new Error('Hash is missing');
-	}
-
-	try {
-		return (await torrentHandler.pause(hash)).toString();
-	} catch(e) {
-		throw e;
-	}
-};
-
-/**
- * Resume torrent
- * @param hash
- * @return {Promise.<boolean>}
- */
-module.exports.resume = async(hash) => {
-	if(!hash) {
-		throw new Error('Hash is missing');
-	}
-
-	try {
-		return (await torrentHandler.resume(hash)).toString();
-	} catch(e) {
-		throw e;
-	}
-};
-
-/**
- * Delete torrent
- * @param hash
- * @return {Promise.<boolean>}
- */
-module.exports.remove = async(hash) => {
-	if(!hash) {
-		throw new Error('Hash is missing');
-	}
-
-	try {
-		return (await torrentHandler.remove(hash)).toString();
-	} catch(e) {
-		throw e;
-	}
-};
 
 /**
  * Extract data from torrent file
@@ -140,9 +126,8 @@ module.exports.createFromTorrent = async(torrentFile, server) => {
 			_torrent['path'] = `${_torrent.name}.torrent`;
 
 			if(isMoving) {
-        const torrent = new Torrent(_torrent.infoHash);
+        const torrent = new Torrent(pid, _torrent.infoHash);
         torrent.merge(_torrent);
-        torrent.addPid(pid);
 
         return {
           success: true,
@@ -195,8 +180,7 @@ module.exports.createFromTorrentAndData = async(torrentFile, dataFile, server) =
 	if(success) {
 		try {
 			const _torrent = getDataTorrentFromFile(torrentFile);
-			const torrent = new Torrent(_torrent.infoHash);
-			torrent.addPid(pid);
+			const torrent = new Torrent(pid, _torrent.infoHash);
 
 			if(!torrentHandler.isExist(torrent)) {
 				await move(dataFile, `${process.env.DIR_DOWNLOADED}${_torrent.name}`);
@@ -268,8 +252,7 @@ module.exports.createFromDataAndTracker = async(dataFiles, tracker, torrentName,
 			} else {
 				fs.writeFileSync(`${process.env.DIR_TORRENT}${torrentName}.torrent`, _torrent);
 				const t = module.exports.extractTorrentFile(`${process.env.DIR_TORRENT}${torrentName}.torrent`);
-				torrent = new Torrent(t.infoHash);
-				torrent.addPid(pid);
+				torrent = new Torrent(pid, t.infoHash);
 				torrent.name = t.name;
 				torrent.finished = true;
 				torrent.progress = 100;

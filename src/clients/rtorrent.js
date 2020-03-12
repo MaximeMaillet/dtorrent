@@ -3,9 +3,11 @@ require('dotenv').config();
 const xmlrpc = require('xmlrpc');
 const _path = require('path');
 let client = null;
+let serverName = null;
 
 module.exports.init = (credentials) => {
 	if(!client) {
+		serverName = credentials.name;
 		client = xmlrpc.createClient({
 			host: credentials.host,
 			port: credentials.port,
@@ -74,6 +76,7 @@ module.exports.getTorrent = async(hash) => {
 	const path = _path.basename((await methodCall('d.loaded_file', [hash])));
 
   return {
+  	server: serverName,
     hash: hash,
     name: name,
     active: isActive === '1',
